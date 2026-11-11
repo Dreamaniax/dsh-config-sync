@@ -104,7 +104,7 @@ async function main() {
   }
   const tool = registered.find((entry) => entry.name === 'dsh_sync_status') ?? registered[0]
   const names = registered.map((entry) => entry.name)
-  const expected = ['dsh_sync_status', 'dsh_sync_doctor', 'dsh_sync_pull', 'dsh_sync_secrets', 'dsh_sync_push']
+  const expected = ['dsh_sync_status', 'dsh_sync_doctor', 'dsh_sync_pull', 'dsh_sync_secrets', 'dsh_sync_push', 'dsh_sync_diag']
   record(step(names.length === expected.length, 'registers every tool', names.join(',') || 'none'))
   for (const name of expected) record(step(names.includes(name), `tool ${name}`, names.join(',')))
   record(step(tool?.parameters?.type === 'object', 'tool parameters schema', String(tool?.parameters?.type)))

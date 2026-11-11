@@ -2,13 +2,14 @@
 
 跨电脑同步 DSH 配置（技能 / profile 设置 / AGENTS.md）的 DeepSeek Harness 插件，**macOS 与 Windows 同一份代码**。
 
-> 状态：**P5（收尾）**。五个工具 + 一个斜杠命令 + 一个状态卡 + 随包技能：
+> 状态：**P6（隐私加固）**。六个工具 + 一个斜杠命令 + 一个状态卡 + 随包技能：
 > - `dsh_sync_status`：仓库分支 / 上游 / 领先落后 / 脏文件数（默认不联网）。
 > - `dsh_sync_doctor`：`doctor.sh` 的 Node 移植，六节体检，退出码 0-2-1 与脚本一致。
 > - `dsh_sync_pull`：`git pull --ff-only` + 镜像 skills / agents-skills / weekly；**默认 dry-run**。
 > - `dsh_sync_secrets`：scan / redact / inject / refresh / fingerprint；**默认 dry-run**，注入后残留占位符直接失败且不写盘。
 >
-> - `dsh_sync_push`：快照 → lint 闸门 → 脱敏 → 明文扫描 → 提交 → 推送；**默认 dry-run**；分叉时停下，不 rebase、不 force。
+> - `dsh_sync_push`：快照 → lint 闸门 → 脱敏 → 明文扫描 → 提交 → 推送；**默认 dry-run**；分叉时停下，不 rebase、不 force；提交信息含 URL/凭据会被拒绝。
+> - `dsh_sync_diag`：报告本次激活真正注册了什么（服务是否可用、每一步的成败与错误原文）——命令或状态卡不见时先看它。
 >
 > 引导（新机第一条命令）仍由 `dsh-config/scripts/apply.sh` 负责——插件装不上时它不在。
 >
@@ -158,6 +159,19 @@ P0 没有导出 Config schema（避免依赖 schemastery，见下），所以 `c
 - 代价：失去 `defineTool` 的参数预校验 → 我们在 `execute()` 里自己收窄参数并把失败作为数据返回。
 
 这条也顺带让测试能在裸 Node 下跑，不需要任何安装步骤。
+
+## 隐私边界
+
+| 面 | 做法 |
+|---|---|
+| 上传范围 | `skills/`、`agents-skills/`、`AGENTS.md`、profile 五文件；`.dsh-market/` **默认不上传**（`include_market` 才带） |
+| 密钥 | 脱敏/注入都是字面量替换；仓库副本与 `AGENTS.md` 一起处理；注入后残留占位符 → 拒绝写盘 |
+| 扫描 | 工作树 + `deep:true` 时最近 200 次提交；规则覆盖 `as_sk_/ghp_/github_pat_/sk-/sk-proj-/AKIA/AIza/xox*/JWT/PEM/Bearer/通用 api_key 赋值` |
+| 历史命中 | 命中只给 commit + 掩码预览（`AKIAIO…MPLE`），不回传原值；提示先轮换再谈改写历史 |
+| 提交信息 | 含 URL 或凭据特征直接拒绝（进历史不可撤回） |
+| 本地 HTTP 路由 | 只返回分支/领先落后/脏计数，**不返回文件名**；`no-store` |
+| 输出路径 | notes/渲染里的绝对路径缩成 `~/…` |
+| 发布 | `node scripts/publish-check.mjs` 扫 tracked 文件里的账号名、私有仓库 URL、launchd 标签、家目录路径，非零退出可做发布闸门 |
 
 ## 平台差异（已在代码里处理）
 

@@ -113,7 +113,7 @@ test('pull refuses to create a merge when the branch diverged', async () => {
   assert.ok(result.warnings.some((warning) => warning.includes('pull --ff-only failed')))
 })
 
-test('secrets inject refuses to write while a placeholder would remain', () => {
+test('secrets inject refuses to write while a placeholder would remain', async () => {
   const root = join(scratch, 'inject-leftover')
   const dshHome = join(root, 'home')
   mkdirSync(join(dshHome, 'profiles', 'desktop'), { recursive: true })
@@ -121,13 +121,13 @@ test('secrets inject refuses to write while a placeholder would remain', () => {
   if (process.platform !== 'win32') chmodSync(join(dshHome, 'secrets.env'), 0o600)
   const live = join(dshHome, 'profiles', 'desktop', 'cordis.patch.yml')
   writeFileSync(live, 'a: __ANYSEARCH_API_KEY__\nb: __NOT_SET__\n')
-  const result = runSecretsAction({ action: 'inject', repoPath: join(root, 'repo'), dshHome, profile: 'desktop', dryRun: false })
+  const result = await runSecretsAction({ action: 'inject', repoPath: join(root, 'repo'), dshHome, profile: 'desktop', dryRun: false })
   assert.equal(result.ok, false)
   assert.deepEqual(result.leftover, ['__NOT_SET__'])
   assert.equal(readFileSync(live, 'utf8'), 'a: __ANYSEARCH_API_KEY__\nb: __NOT_SET__\n')
 })
 
-test('secrets inject writes the deployed copy and keeps a backup', () => {
+test('secrets inject writes the deployed copy and keeps a backup', async () => {
   const root = join(scratch, 'inject-ok')
   const dshHome = join(root, 'home')
   mkdirSync(join(dshHome, 'profiles', 'desktop'), { recursive: true })
@@ -135,11 +135,11 @@ test('secrets inject writes the deployed copy and keeps a backup', () => {
   const live = join(dshHome, 'profiles', 'desktop', 'cordis.patch.yml')
   writeFileSync(live, 'a: __ANYSEARCH_API_KEY__\n')
 
-  const dry = runSecretsAction({ action: 'inject', repoPath: join(root, 'repo'), dshHome, dryRun: true })
+  const dry = await runSecretsAction({ action: 'inject', repoPath: join(root, 'repo'), dshHome, dryRun: true })
   assert.equal(dry.ok, true)
   assert.equal(readFileSync(live, 'utf8'), 'a: __ANYSEARCH_API_KEY__\n')
 
-  const real = runSecretsAction({ action: 'inject', repoPath: join(root, 'repo'), dshHome, dryRun: false })
+  const real = await runSecretsAction({ action: 'inject', repoPath: join(root, 'repo'), dshHome, dryRun: false })
   assert.equal(real.ok, true)
   assert.equal(readFileSync(live, 'utf8'), 'a: as_sk_X\n')
   // The backup holds the pre-injection text, so it must live outside the repo.
@@ -148,7 +148,7 @@ test('secrets inject writes the deployed copy and keeps a backup', () => {
   assert.equal(readdirSync(join(dshHome, 'profiles', 'desktop')).some((name) => name.includes('.bak-')), false)
 })
 
-test('secrets redact rewrites the repository copy only', () => {
+test('secrets redact rewrites the repository copy only', async () => {
   const root = join(scratch, 'redact')
   const dshHome = join(root, 'home')
   const repo = join(root, 'repo')
@@ -157,28 +157,28 @@ test('secrets redact rewrites the repository copy only', () => {
   writeFileSync(join(dshHome, 'secrets.env'), 'ANYSEARCH_API_KEY=as_sk_REAL\n')
   const repoConfig = join(repo, 'profiles', 'desktop', 'cordis.patch.yml')
   writeFileSync(repoConfig, 'a: "Bearer as_sk_REAL"\n')
-  const result = runSecretsAction({ action: 'redact', repoPath: repo, dshHome, dryRun: false })
+  const result = await runSecretsAction({ action: 'redact', repoPath: repo, dshHome, dryRun: false })
   assert.equal(result.ok, true)
   assert.equal(readFileSync(repoConfig, 'utf8'), 'a: "Bearer __ANYSEARCH_API_KEY__"\n')
 })
 
-test('secrets scan reports a leaked value as a failure', () => {
+test('secrets scan reports a leaked value as a failure', async () => {
   const root = join(scratch, 'scan')
   const repo = join(root, 'repo')
   mkdirSync(join(repo, 'profiles'), { recursive: true })
   writeFileSync(join(repo, 'profiles', 'leak.yml'), 'a: "Bearer as_sk_LEAKEDVALUE123"\n')
-  const result = runSecretsAction({ action: 'scan', repoPath: repo, dshHome: join(root, 'home') })
+  const result = await runSecretsAction({ action: 'scan', repoPath: repo, dshHome: join(root, 'home') })
   assert.equal(result.ok, false)
   assert.equal(result.exitCode, 1)
   assert.equal(result.hits.length, 1)
 })
 
-test('secrets fingerprint never returns a value', () => {
+test('secrets fingerprint never returns a value', async () => {
   const root = join(scratch, 'fingerprint')
   const dshHome = join(root, 'home')
   mkdirSync(dshHome, { recursive: true })
   writeFileSync(join(dshHome, 'secrets.env'), 'ANYSEARCH_API_KEY=as_sk_SECRET\n')
-  const result = runSecretsAction({ action: 'fingerprint', repoPath: join(root, 'repo'), dshHome })
+  const result = await runSecretsAction({ action: 'fingerprint', repoPath: join(root, 'repo'), dshHome })
   assert.equal(result.ok, true)
   assert.equal(result.fingerprints[0].sha256.length, 8)
   assert.ok(!JSON.stringify(result).includes('as_sk_SECRET'))

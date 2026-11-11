@@ -59,7 +59,7 @@ test('apply registers the read-only tools with the declared schema', async () =>
   const module = await loadPlugin()
   const { ctx, tools } = fakeContext()
   await module.apply(ctx, {})
-  assert.deepEqual(tools.map((tool) => tool.name), ['dsh_sync_status', 'dsh_sync_doctor', 'dsh_sync_pull', 'dsh_sync_secrets', 'dsh_sync_push'])
+  assert.deepEqual(tools.map((tool) => tool.name), ['dsh_sync_status', 'dsh_sync_doctor', 'dsh_sync_pull', 'dsh_sync_secrets', 'dsh_sync_push', 'dsh_sync_diag'])
   const tool = tools[0]
   assert.equal(tool.name, 'dsh_sync_status')
   assert.equal(tool.parameters.type, 'object')
@@ -107,7 +107,7 @@ test('apply survives a context that throws on undeclared service reads', async (
     },
   })
   await module.apply(strict, {})
-  assert.equal(tools.length, 5)
+  assert.equal(tools.length, 6)
 })
 
 test('apply registers the optional surfaces through ctx.get when available', async () => {
