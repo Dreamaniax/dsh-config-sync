@@ -104,9 +104,9 @@ async function main() {
   }
   const tool = registered.find((entry) => entry.name === 'dsh_sync_status') ?? registered[0]
   const names = registered.map((entry) => entry.name)
-  record(step(registered.length === 2, 'registers both read-only tools', names.join(',') || 'none'))
-  record(step(names.includes('dsh_sync_status'), 'tool dsh_sync_status', names.join(',')))
-  record(step(names.includes('dsh_sync_doctor'), 'tool dsh_sync_doctor', names.join(',')))
+  const expected = ['dsh_sync_status', 'dsh_sync_doctor', 'dsh_sync_pull', 'dsh_sync_secrets']
+  record(step(names.length === expected.length, 'registers every tool', names.join(',') || 'none'))
+  for (const name of expected) record(step(names.includes(name), `tool ${name}`, names.join(',')))
   record(step(tool?.parameters?.type === 'object', 'tool parameters schema', String(tool?.parameters?.type)))
   record(step(tool?.output?.schema?.type === 'object', 'tool output schema', String(tool?.output?.schema?.type)))
   record(step(typeof tool?.output?.render === 'function', 'tool render callback'))

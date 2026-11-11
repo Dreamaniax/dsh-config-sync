@@ -2,11 +2,13 @@
 
 跨电脑同步 DSH 配置（技能 / profile 设置 / AGENTS.md）的 DeepSeek Harness 插件，**macOS 与 Windows 同一份代码**。
 
-> 状态：**P1（只读体检对等）**。当前暴露两个只读工具：
+> 状态：**P2（本机写入）**。四个工具：
 > - `dsh_sync_status`：仓库分支 / 上游 / 领先落后 / 脏文件数（默认不联网）。
-> - `dsh_sync_doctor`：`dsh-config/scripts/doctor.sh` 的 Node 移植，六节体检（工具链 / 仓库 / 技能 / 密钥 / profile / 周报），退出码 0-2-1 与脚本一致。唯一副作用是 `git fetch`（`offline: true` 可跳过）。
+> - `dsh_sync_doctor`：`doctor.sh` 的 Node 移植，六节体检，退出码 0-2-1 与脚本一致。
+> - `dsh_sync_pull`：`git pull --ff-only` + 镜像 skills / agents-skills / weekly；**默认 dry-run**。
+> - `dsh_sync_secrets`：scan / redact / inject / refresh / fingerprint；**默认 dry-run**，注入后残留占位符直接失败且不写盘。
 >
-> 不写盘、不推送。
+> 推送（pack + sync）留给 P3。
 >
 > 设计理由与后续阶段见主仓库的调研文档：`../research/syn-dsh-plugin/PLAN.md`。
 
@@ -65,6 +67,28 @@ node scripts/uninstall.mjs
 | `profile` | string（可选） | 要体检的 profile，默认 `desktop` |
 
 每节返回 `{ id, title, status: ok|warn|error, items: [{ level, text }] }`。与脚本的对等性由 `node scripts/parity.mjs` 逐项比对（当前 13/13 一致）。
+
+### `dsh_sync_pull`
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| `repo` | string（可选） | 仓库路径，默认取配置 |
+| `dry_run` | boolean（可选，**默认 true**） | 只 fetch 并报告计划，不动 HEAD、不写本机 |
+| `delete_local` | boolean（可选，默认 false） | 同时删除仓库里已不存在的本机技能（危险，默认关） |
+
+`git pull --ff-only`；分叉时返回 `ok:false` 并保留本地提交，不做合并、更不 reset。镜像目标：`skills/`、`agents-skills/`、`weekly/`（weekly 的 `.sh` 自动 `chmod +x`）。
+
+### `dsh_sync_secrets`
+
+| `action` | 作用方向 | 说明 |
+|---|---|---|
+| `scan` | 仓库（只读） | 找明文密钥，命中即 `exitCode:1` |
+| `redact` | 仓库副本 | 真实值 → `__KEY__` |
+| `inject` | 已部署副本 | `__KEY__` → 真实值；**残留占位符则不写盘** |
+| `refresh` | 已部署副本 | 轮换后重写 `Authorization: "Bearer …"` |
+| `fingerprint` | 只读 | 只给 sha256 前 8 位与长度 |
+
+替换一律**字面量**（`sed` 元字符 bug 的修复点）；写前留 `<file>.bak-<ISO>` 备份；返回值、日志、渲染里都没有明文。
 
 ### `dsh_sync_status`
 
@@ -133,6 +157,7 @@ P0 没有导出 Config schema（避免依赖 schemastery，见下），所以 `c
 ```bash
 node --test "test/*.test.mjs"     # 26 个用例：解析/脱敏/扫描/体检分节 + 真 git 仓库 + 插件契约
 node scripts/parity.mjs           # 与 scripts/doctor.sh 逐项比对（同状态、同退出码）
+node --test test/mirror.test.mjs  # 镜像与 rsync -a --delete 的树对比
 node scripts/install.mjs --dry-run
 node scripts/verify.mjs
 ```
@@ -153,6 +178,10 @@ node scripts/verify.mjs
 | 8 | 三种仓库状态结果正确 | 干净 / 落后 / 脏（本地真仓库或临时仓库） |
 | 9 | 体检与脚本对等 | `node scripts/parity.mjs` → 13/13，退出码一致 |
 | 10 | 报告不含明文密钥 | `test/doctor.test.mjs` 的 redaction 用例 |
+| 11 | 镜像与 rsync 等价 | `test/mirror.test.mjs`（有 rsync 时真跑对照） |
+| 12 | reasoningEffort 4 条断言 | `test/patch.test.mjs`（移植自 `selftest.sh:26-69`） |
+| 13 | 元字符密钥往返 | `test/secrets.test.mjs` |
+| 14 | 残留占位符不写盘 | `test/p2.test.mjs` |
 
 ## 许可
 
