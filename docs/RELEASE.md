@@ -14,12 +14,19 @@ node scripts/verify.mjs            # 安装形态
 
 ## 1. 发布包（任选其一；推荐两个都做）
 
-**A. npm（安装更顺，免 `allowBuilds`）**
+**A. npm（已发布）**
+
+`dsh-syn-config@0.7.1` 已在 registry 上：<https://www.npmjs.com/package/dsh-syn-config>（34 个文件，234 KB unpacked）。
+
+首次发布踩到的两个坑，记下来免得下台机器重踩：
+
+1. granular token 若用「Only select packages」选一个**还不存在**的包，作用域是空集 → 403 `You may not perform that action with these credentials`；
+2. 首次发布时 registry 会先挂一个 `0.0.0-stage` 占位版本（staged publishing 机制），真实版本在几分钟后出现，`npm view <name> version` 一开始会看到占位号，不要慌。
 
 ```bash
-npm login                          # 本机当前未登录
-# package.json: "private": false, 补 "publishConfig": { "access": "public" }
-npm publish --access public        # 名称 dsh-syn-config（已确认未被占用）
+npm login
+npm publish --access public
+npm view dsh-syn-config version   # 0.7.1
 ```
 
 **B. GitHub Release tarball（不发 npm 时的兜底，市场会优先展示它）**
