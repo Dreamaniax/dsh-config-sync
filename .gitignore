@@ -1,0 +1,6 @@
+# Never commit local install state or dependency trees.
+node_modules/
+node_modules
+*.tmp
+.DS_Store
+Thumbs.db

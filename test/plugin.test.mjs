@@ -1,0 +1,98 @@
+import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { after, test } from 'node:test'
+import { pathToFileURL } from 'node:url'
+
+/**
+ * These tests load the host half exactly as the host does: a plain ESM import
+ * of lib/index.js. The file deliberately imports nothing from `@deepseek-ai/*`,
+ * so the suite runs under plain Node on macOS and Windows with no install step.
+ */
+
+const scratch = mkdtempSync(join(tmpdir(), 'dsh-config-sync-plugin-'))
+after(() => rmSync(scratch, { recursive: true, force: true }))
+
+function makeRepo(name) {
+  const dir = join(scratch, name)
+  mkdirSync(dir, { recursive: true })
+  const git = (args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  git(['init', '--quiet', '--initial-branch', 'main'])
+  git(['config', 'user.email', 'test@example.com'])
+  git(['config', 'user.name', 'Test'])
+  writeFileSync(join(dir, 'README.md'), '# fixture\n')
+  git(['add', 'README.md'])
+  git(['commit', '--quiet', '-m', 'init'])
+  return dir
+}
+
+function fakeContext() {
+  const tools = []
+  return {
+    tools,
+    ctx: {
+      tools: {
+        register(definition) {
+          tools.push(definition)
+          return () => {}
+        },
+      },
+    },
+  }
+}
+
+async function loadPlugin() {
+  return import(pathToFileURL(join(import.meta.dirname, '..', 'lib', 'index.js')).href)
+}
+
+test('the plugin exports the host contract', async () => {
+  const module = await loadPlugin()
+  assert.equal(module.name, 'dsh-config-sync')
+  assert.deepEqual(module.inject, ['tools'])
+  assert.equal(typeof module.apply, 'function')
+  assert.equal(module.DEFAULT_REPO_PATH, join(process.env.HOME ?? process.env.USERPROFILE ?? '', 'dsh-config'))
+})
+
+test('apply registers exactly one tool with the declared schema', async () => {
+  const module = await loadPlugin()
+  const { ctx, tools } = fakeContext()
+  await module.apply(ctx, {})
+  assert.equal(tools.length, 1)
+  const [tool] = tools
+  assert.equal(tool.name, 'dsh_sync_status')
+  assert.equal(tool.parameters.type, 'object')
+  assert.ok(tool.parameters.properties.repo)
+  assert.equal(tool.output.schema.properties.ok.type, 'boolean')
+  assert.ok(tool.output.schema.required.includes('notes'))
+  assert.equal(typeof tool.output.render, 'function')
+  assert.equal(typeof tool.execute, 'function')
+})
+
+test('execute returns a schema-shaped report for a clean repository', async () => {
+  const module = await loadPlugin()
+  const { ctx, tools } = fakeContext()
+  await module.apply(ctx, {})
+  const repo = makeRepo('plugin-clean')
+  const value = await tools[0].execute({ repo }, { signal: undefined })
+  assert.equal(value.ok, true)
+  assert.equal(value.repoPresent, true)
+  assert.equal(value.branch, 'main')
+  assert.equal(value.dirty, 0)
+  assert.ok(Array.isArray(value.notes))
+  assert.equal(typeof value.repoPath, 'string')
+  for (const key of ['ok', 'repoPath', 'repoPresent', 'branch', 'upstream', 'ahead', 'behind', 'dirty', 'dirtyFiles', 'notes']) {
+    assert.ok(key in value, `missing output field ${key}`)
+  }
+})
+
+test('execute reports a missing repository instead of throwing', async () => {
+  const module = await loadPlugin()
+  const { ctx, tools } = fakeContext()
+  await module.apply(ctx, {})
+  const value = await tools[0].execute({ repo: join(scratch, 'absent') }, {})
+  assert.equal(value.ok, false)
+  assert.equal(value.repoPresent, false)
+  assert.ok(value.notes.length >= 1)
+})

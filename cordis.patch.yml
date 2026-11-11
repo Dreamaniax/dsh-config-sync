@@ -1,0 +1,17 @@
+# dsh-config-sync — bundle patch for DeepSeek Harness.
+#
+# Applied as a profile bundle layer (the `dsh.bundle.patch` manifest field).
+# The row resolves this package by name through the profile's node_modules;
+# everything the plugin does lives in the host half (lib/index.js).
+#
+# Optional per-profile settings — uncomment and edit to override the defaults
+# (default repo path is `~/dsh-config`, git timeout 15 s, no network on status):
+#
+#   config:
+#     repoPath: '~/dsh-config'
+#     profile: 'desktop'
+#     gitTimeoutMs: 15000
+#     fetchOnStatus: false
+- insert:
+    - id: dsh-config-sync
+      name: 'dsh-config-sync'
