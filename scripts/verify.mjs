@@ -16,7 +16,7 @@
  * names the failed step.
  */
 
-import { existsSync, readlinkSync } from 'node:fs'
+import { existsSync, readFileSync, readlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -110,6 +110,21 @@ async function main() {
   record(step(tool?.parameters?.type === 'object', 'tool parameters schema', String(tool?.parameters?.type)))
   record(step(tool?.output?.schema?.type === 'object', 'tool output schema', String(tool?.output?.schema?.type)))
   record(step(typeof tool?.output?.render === 'function', 'tool render callback'))
+
+  // The client half and the bundled skill ship in the same package; a missing
+  // file here means the card or the skill would silently not appear.
+  record(step(typeof module.registerCommands === 'function' || registered.length > 0, 'host surface registered'))
+  const clientEntry = join(linkPath, 'client', 'client.js')
+  record(step(existsSync(clientEntry), 'client half present', clientEntry))
+  const installedManifest = (() => {
+    try {
+      return JSON.parse(readFileSync(join(linkPath, 'package.json'), 'utf8'))
+    } catch {
+      return {}
+    }
+  })()
+  record(step(installedManifest?.dsh?.client?.platform === 'web', 'manifest declares the web client'))
+  record(step(existsSync(join(linkPath, 'assets', 'syn-dsh.md')), 'bundled skill body present'))
 
   // Read-only status against the real checkout (default path or the manifest's).
   const repoPath = module.DEFAULT_REPO_PATH ?? join(dshHome, '..', 'dsh-config')

@@ -50,7 +50,7 @@ async function loadPlugin() {
 test('the plugin exports the host contract', async () => {
   const module = await loadPlugin()
   assert.equal(module.name, 'dsh-config-sync')
-  assert.deepEqual(module.inject, ['tools'])
+  assert.deepEqual(module.inject, ['tools', 'commands', 'skills'])
   assert.equal(typeof module.apply, 'function')
   assert.equal(module.DEFAULT_REPO_PATH, join(process.env.HOME ?? process.env.USERPROFILE ?? '', 'dsh-config'))
 })

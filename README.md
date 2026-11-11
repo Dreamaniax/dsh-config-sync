@@ -2,7 +2,7 @@
 
 跨电脑同步 DSH 配置（技能 / profile 设置 / AGENTS.md）的 DeepSeek Harness 插件，**macOS 与 Windows 同一份代码**。
 
-> 状态：**P3（快照 + 推送）**。五个工具：
+> 状态：**P5（收尾）**。五个工具 + 一个斜杠命令 + 一个状态卡 + 随包技能：
 > - `dsh_sync_status`：仓库分支 / 上游 / 领先落后 / 脏文件数（默认不联网）。
 > - `dsh_sync_doctor`：`doctor.sh` 的 Node 移植，六节体检，退出码 0-2-1 与脚本一致。
 > - `dsh_sync_pull`：`git pull --ff-only` + 镜像 skills / agents-skills / weekly；**默认 dry-run**。
@@ -11,6 +11,10 @@
 > - `dsh_sync_push`：快照 → lint 闸门 → 脱敏 → 明文扫描 → 提交 → 推送；**默认 dry-run**；分叉时停下，不 rebase、不 force。
 >
 > 引导（新机第一条命令）仍由 `dsh-config/scripts/apply.sh` 负责——插件装不上时它不在。
+>
+> `/syn-dsh status|doctor|pull|push|secrets`：斜杠命令，宿主半执行、不进模型消息；`/syn-dsh push now` 才真推。
+> 输入框上方的状态圆点：绿=已同步、黄=有漂移（↑领先/↓落后/±脏）、红=不可用；点一下刷新。
+> `syn-dsh` 技能由插件自带（`assets/syn-dsh.md`，rank 600），不再放在配置仓库里。
 >
 > 设计理由与后续阶段见主仓库的调研文档：`../research/syn-dsh-plugin/PLAN.md`。
 
@@ -200,6 +204,9 @@ node scripts/verify.mjs
 | 16 | 默认不删仓库条目 | `test/pack.test.mjs`（`allowDelete` 才删） |
 | 17 | 分叉不 rebase、不丢提交 | `test/push.test.mjs` |
 | 18 | 明文密钥在提交前中止 | `test/push.test.mjs` |
+| 19 | 斜杠命令五个子命令 | `test/p4.test.mjs`（status/push dry-run/未知子命令） |
+| 20 | 状态路由 GET/405 | `test/p4.test.mjs`（含 `Cache-Control: no-store`） |
+| 21 | 技能随包携带 | `test/p4.test.mjs`（provider list/get，rank 600） |
 
 ## 许可
 
