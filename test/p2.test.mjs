@@ -142,7 +142,10 @@ test('secrets inject writes the deployed copy and keeps a backup', () => {
   const real = runSecretsAction({ action: 'inject', repoPath: join(root, 'repo'), dshHome, dryRun: false })
   assert.equal(real.ok, true)
   assert.equal(readFileSync(live, 'utf8'), 'a: as_sk_X\n')
-  assert.ok(readdirSync(join(dshHome, 'profiles', 'desktop')).some((name) => name.includes('.bak-')))
+  // The backup holds the pre-injection text, so it must live outside the repo.
+  const backups = readdirSync(join(dshHome, 'backups'))
+  assert.ok(backups.some((name) => name.includes('.bak-')))
+  assert.equal(readdirSync(join(dshHome, 'profiles', 'desktop')).some((name) => name.includes('.bak-')), false)
 })
 
 test('secrets redact rewrites the repository copy only', () => {

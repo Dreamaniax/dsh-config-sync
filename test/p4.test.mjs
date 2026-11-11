@@ -99,6 +99,8 @@ test('the status route answers GET with JSON and refuses other methods', async (
   const body = await response.json()
   assert.equal(body.branch, 'main')
   assert.equal(body.dirty, 0)
+  // File names never leave the host: the route is readable by any local process.
+  assert.equal('dirtyFiles' in body, false)
   assert.equal(body.ok, true)
 
   const refused = await routes[0].resource(new Request(`http://127.0.0.1${STATUS_PATH}`, { method: 'POST' }))

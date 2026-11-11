@@ -50,7 +50,7 @@ async function loadPlugin() {
 test('the plugin exports the host contract', async () => {
   const module = await loadPlugin()
   assert.equal(module.name, 'dsh-config-sync')
-  assert.deepEqual(module.inject, ['tools', 'commands', 'skills'])
+  assert.deepEqual(module.inject, ['tools'])
   assert.equal(typeof module.apply, 'function')
   assert.equal(module.DEFAULT_REPO_PATH, join(process.env.HOME ?? process.env.USERPROFILE ?? '', 'dsh-config'))
 })
@@ -95,4 +95,35 @@ test('execute reports a missing repository instead of throwing', async () => {
   assert.equal(value.ok, false)
   assert.equal(value.repoPresent, false)
   assert.ok(value.notes.length >= 1)
+})
+
+test('apply survives a context that throws on undeclared service reads', async () => {
+  const module = await loadPlugin()
+  const tools = []
+  const strict = new Proxy({ tools: { register: (definition) => tools.push(definition) } }, {
+    get(target, property) {
+      if (typeof property === 'symbol' || property in target) return Reflect.get(target, property)
+      throw new Error(`cannot get property "${String(property)}" without inject`)
+    },
+  })
+  await module.apply(strict, {})
+  assert.equal(tools.length, 5)
+})
+
+test('apply registers the optional surfaces through ctx.get when available', async () => {
+  const module = await loadPlugin()
+  const seen = []
+  const services = {
+    commands: { register: (definition) => seen.push(`cmd:${definition.name}`) },
+    skills: { registerProvider: () => seen.push('skill') },
+    webServer: { register: (route) => seen.push(`route:${route.path}`) },
+  }
+  const ctx = {
+    tools: { register: () => seen.push('tool') },
+    get: (name) => services[name],
+  }
+  await module.apply(ctx, {})
+  assert.ok(seen.includes('cmd:syn-dsh'))
+  assert.ok(seen.includes('skill'))
+  assert.ok(seen.includes('route:/plugins/dsh-config-sync/status'))
 })
