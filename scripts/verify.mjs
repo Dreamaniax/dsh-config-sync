@@ -102,9 +102,11 @@ async function main() {
   } catch (error) {
     record(step(false, 'apply(fake ctx)', String(error?.message ?? error)))
   }
-  const tool = registered[0]
-  record(step(registered.length === 1, 'registers exactly one tool', `${registered.length}`))
-  record(step(tool?.name === 'dsh_sync_status', 'tool name', String(tool?.name)))
+  const tool = registered.find((entry) => entry.name === 'dsh_sync_status') ?? registered[0]
+  const names = registered.map((entry) => entry.name)
+  record(step(registered.length === 2, 'registers both read-only tools', names.join(',') || 'none'))
+  record(step(names.includes('dsh_sync_status'), 'tool dsh_sync_status', names.join(',')))
+  record(step(names.includes('dsh_sync_doctor'), 'tool dsh_sync_doctor', names.join(',')))
   record(step(tool?.parameters?.type === 'object', 'tool parameters schema', String(tool?.parameters?.type)))
   record(step(tool?.output?.schema?.type === 'object', 'tool output schema', String(tool?.output?.schema?.type)))
   record(step(typeof tool?.output?.render === 'function', 'tool render callback'))

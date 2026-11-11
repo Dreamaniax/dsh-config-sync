@@ -2,7 +2,11 @@
 
 跨电脑同步 DSH 配置（技能 / profile 设置 / AGENTS.md）的 DeepSeek Harness 插件，**macOS 与 Windows 同一份代码**。
 
-> 状态：**P0（只读体检）**。当前只暴露一个模型工具 `dsh_sync_status`：报告本机 `dsh-config` 仓库的分支、上游、领先/落后提交数、工作区改动数。不写盘、不推送、不联网（除非显式要求 `fetch`）。
+> 状态：**P1（只读体检对等）**。当前暴露两个只读工具：
+> - `dsh_sync_status`：仓库分支 / 上游 / 领先落后 / 脏文件数（默认不联网）。
+> - `dsh_sync_doctor`：`dsh-config/scripts/doctor.sh` 的 Node 移植，六节体检（工具链 / 仓库 / 技能 / 密钥 / profile / 周报），退出码 0-2-1 与脚本一致。唯一副作用是 `git fetch`（`offline: true` 可跳过）。
+>
+> 不写盘、不推送。
 >
 > 设计理由与后续阶段见主仓库的调研文档：`../research/syn-dsh-plugin/PLAN.md`。
 
@@ -49,6 +53,18 @@ node scripts/uninstall.mjs
 只删投影（link/junction，绝不穿过 link 删目标）与 manifest 里的两处条目，保留备份；仓库本身不受影响。
 
 ## 工具
+
+### `dsh_sync_doctor`
+
+`dsh-config/scripts/doctor.sh` 的结构化版本：同样的六节、同样的判定、同样的退出码（0 干净 / 2 有警告 / 1 有阻塞），但返回的是 JSON 分节而不是中文日志。
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| `repo` | string（可选） | 仓库路径，支持 `~`；默认取配置 |
+| `offline` | boolean（可选） | 跳过 `git fetch` 与远端比对 |
+| `profile` | string（可选） | 要体检的 profile，默认 `desktop` |
+
+每节返回 `{ id, title, status: ok|warn|error, items: [{ level, text }] }`。与脚本的对等性由 `node scripts/parity.mjs` 逐项比对（当前 13/13 一致）。
 
 ### `dsh_sync_status`
 
@@ -115,14 +131,15 @@ P0 没有导出 Config schema（避免依赖 schemastery，见下），所以 `c
 ## 开发
 
 ```bash
-node --test "test/*.test.mjs"     # 11 个用例：path/porcelain 解析 + 真 git 仓库读写 + 插件契约
+node --test "test/*.test.mjs"     # 26 个用例：解析/脱敏/扫描/体检分节 + 真 git 仓库 + 插件契约
+node scripts/parity.mjs           # 与 scripts/doctor.sh 逐项比对（同状态、同退出码）
 node scripts/install.mjs --dry-run
 node scripts/verify.mjs
 ```
 
 `test/status.test.mjs` 在临时目录里 `git init` 真仓库来断言；`test/plugin.test.mjs` 用假 `ctx` 断言注册形态与 `execute` 返回值形状。
 
-## P0 验收清单
+## 验收清单
 
 | # | 验收项 | 命令 / 判据 |
 |---|---|---|
@@ -134,6 +151,8 @@ node scripts/verify.mjs
 | 6 | 宿主启动时组合进该行 | `dsh --profile desktop --dump-config \| grep dsh-config-sync` |
 | 7 | 新会话工具可见 | 重启客户端后问答一次「dsh 配置同步了吗」 |
 | 8 | 三种仓库状态结果正确 | 干净 / 落后 / 脏（本地真仓库或临时仓库） |
+| 9 | 体检与脚本对等 | `node scripts/parity.mjs` → 13/13，退出码一致 |
+| 10 | 报告不含明文密钥 | `test/doctor.test.mjs` 的 redaction 用例 |
 
 ## 许可
 
