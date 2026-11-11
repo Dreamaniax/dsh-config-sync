@@ -93,11 +93,18 @@ window.__ModuleLoader__.load({
     return {
       inject: ['slots'],
       apply(ctx) {
-        ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
-          name: 'conversation.composer.dock',
-          id: 'dsh-config-sync-status',
-          order: 40,
-        }, StatusChip))
+        // A missing slot must cost the chip, not the whole client plugin: the
+        // host UI owns the slot table and may rename it between versions.
+        try {
+          ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
+            name: 'conversation.composer.dock',
+            id: 'dsh-config-sync-status',
+            order: 40,
+          }, StatusChip))
+        } catch (error) {
+          // eslint-disable-next-line no-console -- there is no logger in the browser half
+          console.warn(`dsh-config-sync: status chip not mounted (${String(error?.message ?? error)})`)
+        }
       },
     }
   },
