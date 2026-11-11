@@ -221,3 +221,13 @@ cd ~/dsh-config && bash scripts/cross-platform-selftest.sh
 2. **变化**：改动的技能名（超过 10 个只列前 10 + 共几个）；是否动了配置/插件
 3. **生效**：新开会话（技能）/ 重启客户端（插件）
 4. **待办**：缺密钥、冲突未合、推送失败等
+
+## 密钥注入只由人执行
+
+`/syn-dsh secrets` 只支持 `scan` / `fingerprint`（只读）。`inject` / `refresh` 会写真实密钥进已部署配置，**只能由人执行**：
+
+```bash
+bash ~/dsh-config/scripts/apply.sh --yes     # 从 ~/.dsh/secrets.env 注入
+```
+
+要让模型工具代写，需在本机插件行显式加 `allowSecretInject: true`（默认关闭）。

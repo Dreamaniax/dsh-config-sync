@@ -113,3 +113,20 @@ test('the status route answers GET with JSON and refuses other methods', async (
 test('a composition without a web server still loads', () => {
   assert.equal(registerStatusRoute({}, { repoPath: '/tmp/x', timeoutMs: 1000 }), false)
 })
+
+test('the slash command refuses to inject a secret', async () => {
+  const { repo, home } = fixture('command-inject')
+  const command = captureCommand({ repoPath: repo, dshHome: home, profile: 'desktop', gitTimeoutMs: 15_000 })
+  const refused = await command.handler({ rawInput: 'secrets inject' })
+  assert.equal(refused.kind, 'error')
+  assert.match(refused.text, /apply\.sh/)
+  assert.equal(/inject: ok/u.test(refused.text), false)
+})
+
+test('the slash command still scans read-only', async () => {
+  const { repo, home } = fixture('command-scan')
+  const command = captureCommand({ repoPath: repo, dshHome: home, profile: 'desktop', gitTimeoutMs: 15_000 })
+  const scanned = await command.handler({ rawInput: 'secrets scan' })
+  assert.match(scanned.text, /scan: ok/u)
+  assert.match(scanned.text, /plaintext hit/u)
+})

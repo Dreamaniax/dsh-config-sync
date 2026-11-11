@@ -127,3 +127,18 @@ test('apply registers the optional surfaces through ctx.get when available', asy
   assert.ok(seen.includes('skill'))
   assert.ok(seen.includes('route:/plugins/dsh-syn-config/status'))
 })
+
+test('the tool refuses to inject a secret without an explicit machine opt-in', async () => {
+  const module = await loadPlugin()
+  const tools = []
+  const ctx = { tools: { register: (definition) => tools.push(definition) } }
+  await module.apply(ctx, { repoPath: '/tmp/definitely-not-a-repo', profile: 'desktop' })
+  const secrets = tools.find((tool) => tool.name === 'dsh_sync_secrets')
+  const refused = await secrets.execute({ action: 'inject', dry_run: false })
+  assert.equal(refused.ok, false)
+  assert.ok(refused.notes.some((note) => note.includes('injected by the human')))
+  assert.ok(refused.notes.some((note) => note.includes('apply.sh')))
+  // A dry run is allowed: it writes nothing, so it stays usable for diagnosis.
+  const dry = await secrets.execute({ action: 'inject', dry_run: true })
+  assert.equal(typeof dry.ok, 'boolean')
+})

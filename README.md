@@ -18,6 +18,8 @@
 > 点它打开面板：顶部是体检结论（阻塞/警告数），下面四个动作——**体检 / 拉取计划 / 推送计划 / 密钥扫描**——都是对只读路由的 `GET`，面板只能看、不能写；每个结果旁边有「复制命令」，真正的写操作仍要 `/syn-dsh … now`。
 > `syn-dsh` 技能由插件自带（`assets/syn-dsh.md`，rank 600），不再放在配置仓库里。
 >
+> **密钥只由人注入。** 工具与斜杠命令都拒绝写 `inject`/`refresh`：`/syn-dsh secrets` 只放 `scan`/`fingerprint`，`dsh_sync_secrets` 在 `dry_run:false` 时直接拒绝，并提示自己执行 `bash ~/dsh-config/scripts/apply.sh --yes`。确需让工具代写，本机在插件行加 `allowSecretInject: true`（默认关闭）。
+>
 > 设计理由与后续阶段见主仓库的调研文档：`../research/syn-dsh-plugin/PLAN.md`。
 
 ## 为什么是插件，而不是又一层 shell
