@@ -1,5 +1,7 @@
 # dsh-syn-config
 
+<p align="center"><img src="assets/icon-180.png" width="96" height="96" alt="dsh-syn-config icon"></p>
+
 跨电脑同步 DSH 配置（技能 / profile 设置 / AGENTS.md）的 DeepSeek Harness 插件，**macOS 与 Windows 同一份代码**。
 
 > 状态：**P7（交互）**。六个工具 + 一个斜杠命令 + 一枚状态灯与它的面板 + 随包技能：
