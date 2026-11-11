@@ -78,3 +78,11 @@ icon: https://raw.githubusercontent.com/Dreamaniax/dsh-syn-config/main/assets/ic
 ## 6. 安全边界（写给使用者）
 
 插件以宿主全权运行：能执行 `git`、读写 `~/.dsh`、注册一个本机 HTTP 路由。它**默认不写盘**（`pull`/`push` 的 `dry_run` 默认 true），不接受任何网络上报，密钥只在本机 `secrets.env`。
+
+## 7. 隐私复检（0.7.1）
+
+- **占位值不再误报**：`API_KEY=dummy_test_value_0001` 这类测试夹具被识别为占位值放过；带真实凭据前缀（`as_sk_`/`ghp_`/`sk-`/`AKIA`…）的一律不放过。
+- **凭据形状的键**：`*api_key / *token / *secret / *password / Authorization / private_key` 且值 ≥16 位、含字母+数字 → 判为错误（提示改用 `__KEY__`）；`vaultSyncS3Key` 这类标识符不算。
+- **历史扫描不再因体积失败**：单次 diff 超过缓冲时，自动收窄到 `profiles/ scripts/ AGENTS.md weekly/` 重试。
+- **定时任务标签**：不再硬编码个人反域名——读 `DSH_WEEKLY_LAUNCHD_LABEL` / `learning/schedule.env`，都没有就按 `*.dsh.weekly-retro` 后缀匹配。
+- 复检结果：`publish-check` 0 命中；`dsh_sync_doctor` 0 阻塞、2 警告（都是本机与仓库的正常漂移）。
