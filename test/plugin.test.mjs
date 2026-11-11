@@ -55,12 +55,12 @@ test('the plugin exports the host contract', async () => {
   assert.equal(module.DEFAULT_REPO_PATH, join(process.env.HOME ?? process.env.USERPROFILE ?? '', 'dsh-config'))
 })
 
-test('apply registers exactly one tool with the declared schema', async () => {
+test('apply registers the read-only tools with the declared schema', async () => {
   const module = await loadPlugin()
   const { ctx, tools } = fakeContext()
   await module.apply(ctx, {})
-  assert.equal(tools.length, 1)
-  const [tool] = tools
+  assert.deepEqual(tools.map((tool) => tool.name), ['dsh_sync_status', 'dsh_sync_doctor'])
+  const tool = tools[0]
   assert.equal(tool.name, 'dsh_sync_status')
   assert.equal(tool.parameters.type, 'object')
   assert.ok(tool.parameters.properties.repo)
