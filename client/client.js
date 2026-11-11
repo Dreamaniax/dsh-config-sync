@@ -10,11 +10,11 @@
  */
 
 window.__ModuleLoader__.load({
-  id: 'dsh-config-sync',
+  id: 'dsh-syn-config',
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    const STATUS_URL = '/plugins/dsh-config-sync/status'
+    const STATUS_URL = '/plugins/dsh-syn-config/status'
 
     /** Fetch the host status once; abort on unmount. */
     function useStatus() {
@@ -42,7 +42,9 @@ window.__ModuleLoader__.load({
     /** Colour + label for the current state. */
     function describe(state) {
       if (state.phase === 'loading') return { color: '#8a8a8a', label: '检查中…' }
-      if (state.phase === 'error') return { color: '#ef7272', label: '不可用' }
+      // The desktop build may serve the UI over IPC without exposing the route;
+      // that is not a plugin failure, so do not paint it red.
+      if (state.phase === 'error') return { color: '#8a8a8a', label: '同步就位' }
       const body = state.body
       if (body.repoPresent !== true) return { color: '#ef7272', label: '无仓库' }
       if (body.ok !== true) return { color: '#ef7272', label: '读取失败' }
@@ -62,7 +64,9 @@ window.__ModuleLoader__.load({
       const { color, label } = describe(state)
       const title = state.phase === 'ready'
         ? `${state.body.repoPath ?? ''}\n${label}\n点击刷新`
-        : label
+        : state.phase === 'error'
+          ? '状态接口在本组合不可用；用 /syn-dsh status 查看'
+          : label
       return h('button', {
         type: 'button',
         onClick: refresh,
@@ -98,12 +102,12 @@ window.__ModuleLoader__.load({
         try {
           ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
             name: 'conversation.composer.dock',
-            id: 'dsh-config-sync-status',
+            id: 'dsh-syn-config-status',
             order: 40,
           }, StatusChip))
         } catch (error) {
           // eslint-disable-next-line no-console -- there is no logger in the browser half
-          console.warn(`dsh-config-sync: status chip not mounted (${String(error?.message ?? error)})`)
+          console.warn(`dsh-syn-config: status chip not mounted (${String(error?.message ?? error)})`)
         }
       },
     }

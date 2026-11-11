@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Install dsh-config-sync into a DSH profile by linking this checkout.
+ * Install dsh-syn-config into a DSH profile by linking this checkout.
  *
  * This is the offline / development route, mirroring what the GUI plugin
  * manager does for a published package:
@@ -8,13 +8,13 @@
  *   1. back up the profile manifest (once)
  *   2. write a `link:` dependency pointing at this checkout
  *   3. append the package name to `dsh.profile.bundles` (deduplicated)
- *   4. create profile/node_modules/dsh-config-sync — symlink on POSIX,
+ *   4. create profile/node_modules/dsh-syn-config — symlink on POSIX,
  *      junction on Windows
  *   5. re-read the profile and check every fact
  *
  * The preferred end-user route on DSH Desktop 0.2.x is a package install:
  *
- *   dsh plugin --profile desktop add github:OWNER/dsh-config-sync
+ *   dsh plugin --profile desktop add github:Dreamaniax/dsh-syn-config
  *
  * Usage:
  *   node scripts/install.mjs [--profile desktop] [--home <dsh-home>] [--dry-run]
@@ -58,7 +58,7 @@ Usage: node scripts/install.mjs [options]
   -h, --help        show this help
 
 A production install does not use this script:
-  dsh plugin --profile desktop add github:OWNER/dsh-config-sync
+  dsh plugin --profile desktop add github:Dreamaniax/dsh-syn-config
 `
 
 function fail(message) {

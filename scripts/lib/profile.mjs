@@ -30,7 +30,7 @@ import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 
 /** Package name, spelled once for every script. */
-export const PKG = 'dsh-config-sync'
+export const PKG = 'dsh-syn-config'
 
 const WIN = process.platform === 'win32'
 const TRANSIENT_WINDOWS_RENAME = new Set(['EACCES', 'EBUSY', 'EPERM'])
@@ -164,7 +164,7 @@ export async function writeFileAtomic(path, text) {
 }
 
 /** Keep the pristine first backup, matching the historical script's file name. */
-export function backupManifest(path, label = 'dsh-config-sync') {
+export function backupManifest(path, label = 'dsh-syn-config') {
   const backupPath = `${path}.bak-${label}`
   if (!existsSync(backupPath)) copyFileSync(path, backupPath)
   return backupPath
@@ -252,7 +252,7 @@ export function createProjection(linkPath, target) {
             `  junction: ${junctionError?.message ?? junctionError}\n` +
             `  symlink:  ${symlinkError?.message ?? symlinkError}\n` +
             'Move the checkout to a local NTFS drive, or use the official route:\n' +
-            '  dsh plugin --profile desktop add github:OWNER/dsh-config-sync',
+            '  dsh plugin --profile desktop add github:Dreamaniax/dsh-syn-config',
         )
       }
     }

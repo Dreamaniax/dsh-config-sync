@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Remove dsh-config-sync from a DSH profile.
+ * Remove dsh-syn-config from a DSH profile.
  *
  * The reverse of install.mjs: drop the projection, remove the dependency and
  * the bundle entry, and keep a manifest backup. The checkout itself (and its

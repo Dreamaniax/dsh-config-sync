@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Verify an install of dsh-config-sync, without restarting the app.
+ * Verify an install of dsh-syn-config, without restarting the app.
  *
  * Works for both routes — a `link:` checkout install and a production spec
  * (github:, tarball, registry) materialized by pnpm:

@@ -7,7 +7,7 @@ description: "跨电脑同步 DSH 配置（技能 / 插件 / profile 设置 / AG
 
 把「本机 `~/.dsh`」和「私有配置仓库 `~/dsh-config`」双向对齐。所有命令都在仓库目录里跑。
 
-## 优先用插件（已装 `dsh-config-sync` 时）
+## 优先用插件（已装 `dsh-syn-config` 时）
 
 插件把日常动作做成了工具与命令，脚本退居「引导 + CI + 提交闸门」：
 
@@ -22,8 +22,8 @@ description: "跨电脑同步 DSH 配置（技能 / 插件 / profile 设置 / AG
 
 插件铁律：写操作默认 dry-run；推送分叉时**只停不 rebase**；`--delete` 默认降级为「报告 + 显式确认」；`reasoningEffort` 永不同步。
 
-仓库位置：`~/dsh-config`（软链 → `~/Documents/deepseek-harness/dsh-config`）
-远端：`https://github.com/OWNER/dsh-config.git`（私有）
+仓库位置：`~/dsh-config`（本机惯例；插件默认也是这个路径，可在配置里改）
+远端：`https://github.com/<owner>/dsh-config`（私有）
 profile：`desktop`；技能目录：`~/.dsh/skills`；跨 agent 技能：`~/.agents/skills`
 
 ## 平台（先判断，再决定用哪条命令）
@@ -110,7 +110,7 @@ cd %USERPROFILE%\dsh-config && scripts\win\doctor.cmd   # Windows
 ```bash
 # 0) 装同版本 DSH 桌面端，用同一账号登录一次（生成 ~/.dsh）
 # 1) 私有仓库先授权：gh auth login / PAT / SSH key（首次 clone 会弹凭据管理器）
-git clone https://github.com/OWNER/dsh-config.git ~/dsh-config
+git clone https://github.com/<owner>/dsh-config ~/dsh-config
 cd ~/dsh-config
 ./scripts/doctor.sh        # 可选：只读体检
 ./scripts/apply.sh         # 先 dry-run 看差异
@@ -123,7 +123,7 @@ printf 'ANYSEARCH_API_KEY=%s\n' '你的key' >> ~/.dsh/secrets.env && chmod 600 ~
 Windows 用 `scripts\win\doctor.cmd` / `scripts\win\apply.cmd`（参数相同，自动找 Git Bash，不需要 WSL）：
 
 ```bat
-git clone https://github.com/OWNER/dsh-config.git %USERPROFILE%\dsh-config
+git clone https://github.com/<owner>/dsh-config %USERPROFILE%\dsh-config
 cd %USERPROFILE%\dsh-config
 scripts\win\apply.cmd               :: dry-run
 echo ANYSEARCH_API_KEY=你的key> %USERPROFILE%\.dsh\secrets.env

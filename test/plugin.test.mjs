@@ -49,7 +49,7 @@ async function loadPlugin() {
 
 test('the plugin exports the host contract', async () => {
   const module = await loadPlugin()
-  assert.equal(module.name, 'dsh-config-sync')
+  assert.equal(module.name, 'dsh-syn-config')
   assert.deepEqual(module.inject, ['tools'])
   assert.equal(typeof module.apply, 'function')
   assert.equal(module.DEFAULT_REPO_PATH, join(process.env.HOME ?? process.env.USERPROFILE ?? '', 'dsh-config'))
@@ -125,5 +125,5 @@ test('apply registers the optional surfaces through ctx.get when available', asy
   await module.apply(ctx, {})
   assert.ok(seen.includes('cmd:syn-dsh'))
   assert.ok(seen.includes('skill'))
-  assert.ok(seen.includes('route:/plugins/dsh-config-sync/status'))
+  assert.ok(seen.includes('route:/plugins/dsh-syn-config/status'))
 })

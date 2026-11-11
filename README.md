@@ -1,4 +1,4 @@
-# dsh-config-sync
+# dsh-syn-config
 
 跨电脑同步 DSH 配置（技能 / profile 设置 / AGENTS.md）的 DeepSeek Harness 插件，**macOS 与 Windows 同一份代码**。
 
@@ -40,14 +40,14 @@ node scripts/install.mjs              # 写 profile manifest + 建 link
 node scripts/verify.mjs               # 校验 manifest / link / 模块 / 工具 / 仓库
 ```
 
-它会：备份 `~/.dsh/profiles/desktop/package.json`（`.bak-dsh-config-sync`）→ 写 `link:` 依赖 → 把 `dsh-config-sync` 追加进 `dsh.profile.bundles` → 在 `profile/node_modules/` 建 **symlink（macOS）/ junction（Windows）** → 重新读盘逐项校验。
+它会：备份 `~/.dsh/profiles/desktop/package.json`（`.bak-dsh-syn-config`）→ 写 `link:` 依赖 → 把 `dsh-syn-config` 追加进 `dsh.profile.bundles` → 在 `profile/node_modules/` 建 **symlink（macOS）/ junction（Windows）** → 重新读盘逐项校验。
 
 安装后**完全退出并重开 DeepSeek Harness**（macOS `Cmd+Q` / Windows 托盘 → 退出），新会话里才会有 `dsh_sync_status`。
 
 ### 生产（正式分发）
 
 ```bash
-dsh plugin --profile desktop add github:OWNER/dsh-config-sync
+dsh plugin --profile desktop add github:Dreamaniax/dsh-syn-config
 ```
 
 注意：`dsh plugin add` 只写 `dependencies` + lock，**不写** `dsh.profile.bundles`；只有 GUI 的「设置 → 插件」安装会写 bundles。所以走 CLI 时要么再手工补一行 bundles，要么用 GUI 安装。
@@ -141,8 +141,8 @@ node scripts/uninstall.mjs
 
 ```yaml
 - insert:
-    - id: dsh-config-sync
-      name: 'dsh-config-sync'
+    - id: dsh-syn-config
+      name: 'dsh-syn-config'
       config:
         repoPath: '~/dsh-config'
         gitTimeoutMs: 15000
@@ -205,7 +205,7 @@ node scripts/verify.mjs
 | 3 | 模块可被宿主加载 | `verify.mjs` 的 load/export 四项 |
 | 4 | 只注册一个工具且 schema 合法 | `verify.mjs` 的 tool 三项 |
 | 5 | 能读真实仓库状态 | `verify.mjs` 打印 branch/upstream/ahead/behind/dirty |
-| 6 | 宿主启动时组合进该行 | `dsh --profile desktop --dump-config \| grep dsh-config-sync` |
+| 6 | 宿主启动时组合进该行 | `dsh --profile desktop --dump-config \| grep dsh-syn-config` |
 | 7 | 新会话工具可见 | 重启客户端后问答一次「dsh 配置同步了吗」 |
 | 8 | 三种仓库状态结果正确 | 干净 / 落后 / 脏（本地真仓库或临时仓库） |
 | 9 | 体检与脚本对等 | `node scripts/parity.mjs` → 13/13，退出码一致 |
