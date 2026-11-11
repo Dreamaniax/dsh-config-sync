@@ -59,7 +59,7 @@ test('apply registers the read-only tools with the declared schema', async () =>
   const module = await loadPlugin()
   const { ctx, tools } = fakeContext()
   await module.apply(ctx, {})
-  assert.deepEqual(tools.map((tool) => tool.name), ['dsh_sync_status', 'dsh_sync_doctor', 'dsh_sync_pull', 'dsh_sync_secrets'])
+  assert.deepEqual(tools.map((tool) => tool.name), ['dsh_sync_status', 'dsh_sync_doctor', 'dsh_sync_pull', 'dsh_sync_secrets', 'dsh_sync_push'])
   const tool = tools[0]
   assert.equal(tool.name, 'dsh_sync_status')
   assert.equal(tool.parameters.type, 'object')

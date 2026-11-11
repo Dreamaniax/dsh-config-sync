@@ -2,13 +2,15 @@
 
 跨电脑同步 DSH 配置（技能 / profile 设置 / AGENTS.md）的 DeepSeek Harness 插件，**macOS 与 Windows 同一份代码**。
 
-> 状态：**P2（本机写入）**。四个工具：
+> 状态：**P3（快照 + 推送）**。五个工具：
 > - `dsh_sync_status`：仓库分支 / 上游 / 领先落后 / 脏文件数（默认不联网）。
 > - `dsh_sync_doctor`：`doctor.sh` 的 Node 移植，六节体检，退出码 0-2-1 与脚本一致。
 > - `dsh_sync_pull`：`git pull --ff-only` + 镜像 skills / agents-skills / weekly；**默认 dry-run**。
 > - `dsh_sync_secrets`：scan / redact / inject / refresh / fingerprint；**默认 dry-run**，注入后残留占位符直接失败且不写盘。
 >
-> 推送（pack + sync）留给 P3。
+> - `dsh_sync_push`：快照 → lint 闸门 → 脱敏 → 明文扫描 → 提交 → 推送；**默认 dry-run**；分叉时停下，不 rebase、不 force。
+>
+> 引导（新机第一条命令）仍由 `dsh-config/scripts/apply.sh` 负责——插件装不上时它不在。
 >
 > 设计理由与后续阶段见主仓库的调研文档：`../research/syn-dsh-plugin/PLAN.md`。
 
@@ -67,6 +69,18 @@ node scripts/uninstall.mjs
 | `profile` | string（可选） | 要体检的 profile，默认 `desktop` |
 
 每节返回 `{ id, title, status: ok|warn|error, items: [{ level, text }] }`。与脚本的对等性由 `node scripts/parity.mjs` 逐项比对（当前 13/13 一致）。
+
+### `dsh_sync_push`
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| `repo` | string（可选） | 仓库路径，默认取配置 |
+| `dry_run` | boolean（可选，**默认 true**） | 只算：快照计划 + lint + 脱敏 + 扫描，全都不写 |
+| `message` | string（可选） | 提交信息，默认 `sync: <本地日期时间>` |
+| `include_profile` | boolean（可选，默认 true） | 是否带 profile 设置与插件清单（`--no-profile` 的等价物） |
+| `allow_delete` | boolean（可选，默认 false） | 才允许删除仓库里多出来的条目；默认只报告 |
+
+顺序是契约不是细节：**pack → lint → redact → scan → commit → push**。先脱敏再扫描，扫描不通过就不提交；分叉时保留本地提交并让人手工合，**永不 rebase、永不 force**。
 
 ### `dsh_sync_pull`
 
@@ -182,6 +196,10 @@ node scripts/verify.mjs
 | 12 | reasoningEffort 4 条断言 | `test/patch.test.mjs`（移植自 `selftest.sh:26-69`） |
 | 13 | 元字符密钥往返 | `test/secrets.test.mjs` |
 | 14 | 残留占位符不写盘 | `test/p2.test.mjs` |
+| 15 | 快照不动 reasoningEffort | `test/pack.test.mjs` |
+| 16 | 默认不删仓库条目 | `test/pack.test.mjs`（`allowDelete` 才删） |
+| 17 | 分叉不 rebase、不丢提交 | `test/push.test.mjs` |
+| 18 | 明文密钥在提交前中止 | `test/push.test.mjs` |
 
 ## 许可
 
