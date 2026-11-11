@@ -1,7 +1,7 @@
 {
   "name": "dsh-syn-config",
   "version": "0.7.1",
-  "private": true,
+  "private": false,
   "description": "Cross-platform (macOS + Windows) DeepSeek Harness plugin that syncs DSH config — skills, profile settings, AGENTS.md — with a private dsh-config repository.",
   "type": "module",
   "main": "lib/index.js",
@@ -55,5 +55,16 @@
     "macos"
   ],
   "license": "MIT",
-  "devDependencies": {}
+  "devDependencies": {},
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dreamaniax/dsh-syn-config.git"
+  },
+  "homepage": "https://github.com/Dreamaniax/dsh-syn-config#readme",
+  "bugs": {
+    "url": "https://github.com/Dreamaniax/dsh-syn-config/issues"
+  }
 }
