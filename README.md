@@ -2,7 +2,7 @@
 
 跨电脑同步 DSH 配置（技能 / profile 设置 / AGENTS.md）的 DeepSeek Harness 插件，**macOS 与 Windows 同一份代码**。
 
-> 状态：**P6（隐私加固）**。六个工具 + 一个斜杠命令 + 一个状态卡 + 随包技能：
+> 状态：**P7（交互）**。六个工具 + 一个斜杠命令 + 一枚状态灯与它的面板 + 随包技能：
 > - `dsh_sync_status`：仓库分支 / 上游 / 领先落后 / 脏文件数（默认不联网）。
 > - `dsh_sync_doctor`：`doctor.sh` 的 Node 移植，六节体检，退出码 0-2-1 与脚本一致。
 > - `dsh_sync_pull`：`git pull --ff-only` + 镜像 skills / agents-skills / weekly；**默认 dry-run**。
@@ -14,7 +14,8 @@
 > 引导（新机第一条命令）仍由 `dsh-config/scripts/apply.sh` 负责——插件装不上时它不在。
 >
 > `/syn-dsh status|doctor|pull|push|secrets`：斜杠命令，宿主半执行、不进模型消息；`/syn-dsh push now` 才真推。
-> 输入框上方的状态圆点：绿=已同步、黄=有漂移（↑领先/↓落后/±脏）、红=不可用；点一下刷新。
+> 输入框上方的状态圆点：绿=已同步、黄=有漂移（↑领先/↓落后/±脏）、红=不可用。
+> 点它打开面板：顶部是体检结论（阻塞/警告数），下面四个动作——**体检 / 拉取计划 / 推送计划 / 密钥扫描**——都是对只读路由的 `GET`，面板只能看、不能写；每个结果旁边有「复制命令」，真正的写操作仍要 `/syn-dsh … now`。
 > `syn-dsh` 技能由插件自带（`assets/syn-dsh.md`，rank 600），不再放在配置仓库里。
 >
 > 设计理由与后续阶段见主仓库的调研文档：`../research/syn-dsh-plugin/PLAN.md`。

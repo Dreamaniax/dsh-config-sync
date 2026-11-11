@@ -90,10 +90,13 @@ test('the status route answers GET with JSON and refuses other methods', async (
   const { repo, home } = fixture('route')
   const routes = []
   registerStatusRoute({ webServer: { register: (route) => routes.push(route) } }, { repoPath: repo, timeoutMs: 15_000 })
-  assert.equal(routes.length, 1)
-  assert.equal(routes[0].path, STATUS_PATH)
+  // The surface grew to a card + panel: status, doctor, secrets, plan. The
+  // status route is still the one that must answer without side effects.
+  assert.equal(routes.length, 4)
+  const statusRoute = routes.find((route) => route.path === STATUS_PATH)
+  assert.ok(statusRoute)
 
-  const response = await routes[0].resource(new Request(`http://127.0.0.1${STATUS_PATH}`, { method: 'GET' }))
+  const response = await statusRoute.resource(new Request(`http://127.0.0.1${STATUS_PATH}`, { method: 'GET' }))
   assert.equal(response.status, 200)
   assert.equal(response.headers.get('cache-control'), 'no-store')
   const body = await response.json()
@@ -103,7 +106,7 @@ test('the status route answers GET with JSON and refuses other methods', async (
   assert.equal('dirtyFiles' in body, false)
   assert.equal(body.ok, true)
 
-  const refused = await routes[0].resource(new Request(`http://127.0.0.1${STATUS_PATH}`, { method: 'POST' }))
+  const refused = await statusRoute.resource(new Request(`http://127.0.0.1${STATUS_PATH}`, { method: 'POST' }))
   assert.equal(refused.status, 405)
 })
 

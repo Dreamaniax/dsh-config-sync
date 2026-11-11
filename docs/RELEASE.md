@@ -93,3 +93,16 @@ icon: https://raw.githubusercontent.com/Dreamaniax/dsh-syn-config/main/assets/ic
 - **历史扫描不再因体积失败**：单次 diff 超过缓冲时，自动收窄到 `profiles/ scripts/ AGENTS.md weekly/` 重试。
 - **定时任务标签**：不再硬编码个人反域名——读 `DSH_WEEKLY_LAUNCHD_LABEL` / `learning/schedule.env`，都没有就按 `*.dsh.weekly-retro` 后缀匹配。
 - 复检结果：`publish-check` 0 命中；`dsh_sync_doctor` 0 阻塞、2 警告（都是本机与仓库的正常漂移）。
+
+## 8. 只读路由与面板（0.8.0）
+
+浏览器这一半只读，所有写操作仍走 `/syn-dsh … now`：
+
+| 路由 | 回答 | 缓存 |
+| --- | --- | --- |
+| `GET /plugins/dsh-syn-config/status` | 分支 / 上游 / ahead / behind / dirty | 不缓存 |
+| `GET /plugins/dsh-syn-config/doctor` | 六节体检的计数与最差一条 | 60 s |
+| `GET /plugins/dsh-syn-config/secrets` | 明文命中数与掩码样本 | 60 s |
+| `GET /plugins/dsh-syn-config/plan?action=pull|push` | dry-run 的变更计数（不是 diff 正文） | 60 s |
+
+服务端只放行 `GET`/`HEAD`，所以任何跨站请求都写不了东西；每个载荷都不含文件名与密钥值。面板的四个按钮（体检 / 拉取计划 / 推送计划 / 密钥扫描）就是这四条路由，结果旁有「复制命令」——真正的写操作仍是 `/syn-dsh pull now` / `push now`。
