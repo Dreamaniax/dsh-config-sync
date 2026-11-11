@@ -111,3 +111,21 @@ test('snapshot deletes repository-only entries only when allowDelete is set', ()
   snapshot({ repoPath: repo, dshHome: home, agentsHome: agents, dryRun: false, allowDelete: true })
   assert.equal(existsSync(join(repo, 'skills', 'oldskill')), false)
 })
+
+test('a real value that the repository already stores as a placeholder is not a pending change', () => {
+  const { repo, home, agents } = fixture('redact-compare')
+  const repoPatch = 'agent-default-model:\n  model: deepseek-chat\n  provider:\n    apiKey: __ANYSEARCH_API_KEY__\ncwd: /same\n'
+  const livePatch = 'agent-default-model:\n  model: deepseek-chat\n  provider:\n    apiKey: as_sk_realtoken1234567890abcdef\ncwd: /same\n'
+  write(join(repo, 'profiles', 'desktop', 'cordis.patch.yml'), repoPatch)
+  write(join(home, 'profiles', 'desktop', 'cordis.patch.yml'), livePatch)
+  write(join(home, 'secrets.env'), 'ANYSEARCH_API_KEY=as_sk_realtoken1234567890abcdef\n')
+
+  const plan = snapshot({ repoPath: repo, dshHome: home, agentsHome: agents, dryRun: true })
+  assert.equal(plan.changes.updated.includes('profiles/desktop/cordis.patch.yml'), false,
+    'the secret value is already a placeholder in the repository')
+
+  snapshot({ repoPath: repo, dshHome: home, agentsHome: agents, dryRun: false })
+  const stored = readFileSync(join(repo, 'profiles', 'desktop', 'cordis.patch.yml'), 'utf8')
+  assert.ok(stored.includes('__ANYSEARCH_API_KEY__'))
+  assert.equal(stored.includes('as_sk_realtoken'), false, 'no plaintext ever reaches the repository tree')
+})
