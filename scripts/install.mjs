@@ -18,6 +18,7 @@
  *
  * Usage:
  *   node scripts/install.mjs [--profile desktop] [--home <dsh-home>] [--dry-run]
+ *   node scripts/install.mjs --git github:Owner/repo   # production route
  *
  * Environment: DSH_HOME overrides the default ~/.dsh home.
  */
@@ -50,6 +51,10 @@ Usage: node scripts/install.mjs [options]
   --profile <name>  profile to install into (default: desktop)
   --home <dir>      DSH home (default: $DSH_HOME or ~/.dsh)
   --dry-run         print the manifest changes without writing anything
+  --git <spec>      register a production spec (github:Owner/repo, tarball, or
+                    name@version) instead of linking this checkout. The package
+                    is materialized afterwards with:
+                      dsh plugin --profile <name> install
   -h, --help        show this help
 
 A production install does not use this script:
@@ -77,12 +82,32 @@ async function main() {
     return
   }
 
-  if (options.rest.length > 0) fail(`unknown argument(s): ${options.rest.join(' ')} (see --help)`)
+  // `--git` is this script's own flag, so pull it out of the shared parser's
+  // "unknown argument" bucket before rejecting leftovers.
+  let gitSpec = null
+  const rest = []
+  for (let index = 0; index < options.rest.length; index += 1) {
+    const argument = options.rest[index]
+    if (argument === '--git') {
+      const value = options.rest[index + 1]
+      if (value === undefined || value.trim() === '') fail('--git needs a package spec')
+      gitSpec = value.trim()
+      index += 1
+    } else if (argument.startsWith('--git=')) {
+      gitSpec = argument.slice('--git='.length).trim()
+      if (gitSpec === '') fail('--git needs a package spec')
+    } else {
+      rest.push(argument)
+    }
+  }
+  if (rest.length > 0) fail(`unknown argument(s): ${rest.join(' ')} (see --help)`)
 
   const paths = profilePaths(options)
   const { manifestPath, linkPath, profileDir, profileName, dshHome } = paths
-  const linkValue = linkValueFor(here)
-  const linkKind = process.platform === 'win32' ? 'junction' : 'symlink'
+  const linkValue = gitSpec ?? linkValueFor(here)
+  const linkKind = gitSpec === null
+    ? (process.platform === 'win32' ? 'junction' : 'symlink')
+    : 'pnpm-installed package'
 
   if (!existsSync(manifestPath)) {
     fail(
@@ -123,6 +148,10 @@ async function main() {
   if (options.dryRun) {
     console.log('\n[install] dry run — would write:')
     console.log(next)
+    if (gitSpec !== null) {
+      console.log(`[install] dry run — production spec ${gitSpec}; materialize with: dsh plugin --profile ${profileName} install`)
+      return
+    }
     if (pathKind(linkPath) !== 'missing') {
       console.log(`[install] dry run — would replace ${linkPath} (${pathKind(linkPath)})`)
     } else {
@@ -134,11 +163,14 @@ async function main() {
   // Create the projection first: a failed junction (OneDrive, a network share,
   // a locked node_modules) must not leave the manifest pointing at a bundle
   // that was never linked. Nothing is written until the link exists.
-  try {
-    const projection = createProjection(linkPath, here)
-    console.log(`[install] ${projection.kind}: ${linkPath} -> ${here}`)
-  } catch (error) {
-    fail(`${error.message}\n  The profile manifest was not changed; fix the link and retry.`)
+  // A production spec skips this: pnpm materializes the package on install.
+  if (gitSpec === null) {
+    try {
+      const projection = createProjection(linkPath, here)
+      console.log(`[install] ${projection.kind}: ${linkPath} -> ${here}`)
+    } catch (error) {
+      fail(`${error.message}\n  The profile manifest was not changed; fix the link and retry.`)
+    }
   }
 
   if (before !== next) {
@@ -163,13 +195,19 @@ async function main() {
   if (!Array.isArray(check.dsh?.profile?.bundles) || !check.dsh.profile.bundles.includes(PKG)) {
     fail('bundle entry missing after write')
   }
-  if (pathKind(linkPath) !== 'link') fail(`node_modules entry is not a link or junction: ${pathKind(linkPath)}`)
-  if (!existsSync(join(linkPath, 'package.json'))) fail('link target has no package.json')
-  if (!existsSync(join(linkPath, 'lib', 'index.js'))) fail('link target has no lib/index.js')
-  if (!existsSync(join(linkPath, 'cordis.patch.yml'))) fail('link target has no cordis.patch.yml')
-  if (!samePath(linkPath, here)) fail(`link target does not resolve to this checkout: ${linkPath}`)
-
-  console.log('\n[install] OK — manifest, bundle list and link all check out.')
+  if (gitSpec === null) {
+    if (pathKind(linkPath) !== 'link') fail(`node_modules entry is not a link or junction: ${pathKind(linkPath)}`)
+    if (!existsSync(join(linkPath, 'package.json'))) fail('link target has no package.json')
+    if (!existsSync(join(linkPath, 'lib', 'index.js'))) fail('link target has no lib/index.js')
+    if (!existsSync(join(linkPath, 'cordis.patch.yml'))) fail('link target has no cordis.patch.yml')
+    if (!samePath(linkPath, here)) fail(`link target does not resolve to this checkout: ${linkPath}`)
+    console.log('\n[install] OK — manifest, bundle list and link all check out.')
+  } else {
+    console.log('\n[install] OK — production spec and bundle entry written.')
+    console.log(`[install] Next: materialize the package with`)
+    console.log(`[install]   dsh plugin --profile ${profileName} install`)
+    console.log(`[install] Then run node scripts/verify.mjs and restart DeepSeek Harness.`)
+  }
   console.log(`[install] ${restartHint()}`)
   const verifyCommand = process.platform === 'win32' ? 'node scripts\\verify.mjs' : 'node scripts/verify.mjs'
   console.log(`[install] Then confirm the live install with: ${verifyCommand}`)

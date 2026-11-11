@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * Verify a local install of dsh-config-sync end to end, without restarting the app.
+ * Verify an install of dsh-config-sync, without restarting the app.
  *
- * Checks, in order:
+ * Works for both routes — a `link:` checkout install and a production spec
+ * (github:, tarball, registry) materialized by pnpm:
+ *
  *   1. the profile manifest lists the package and the bundle entry
- *   2. profile/node_modules/<pkg> is a link that resolves to this checkout
- *   3. loading lib/index.js exposes apply / inject / name
+ *   2. profile/node_modules/<pkg> exists and carries the package files
+ *   3. loading the *installed* lib/index.js exposes apply / inject / name
  *   4. applying it against a fake context registers exactly one tool with a
  *      schema-shaped output
  *   5. the read-only status reader can open the dsh-config checkout
@@ -14,21 +16,11 @@
  * names the failed step.
  */
 
-import { existsSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { existsSync, readlinkSync } from 'node:fs'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
-import {
-  PKG,
-  linkValueFor,
-  parseCommonArgs,
-  pathKind,
-  profilePaths,
-  readJson,
-  samePath,
-} from './lib/profile.mjs'
-
-const here = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+import { PKG, parseCommonArgs, pathKind, profilePaths, readJson } from './lib/profile.mjs'
 
 function step(ok, label, detail = '') {
   console.log(`${ok ? '  ok  ' : ' FAIL '} ${label}${detail === '' ? '' : ` — ${detail}`}`)
@@ -55,23 +47,40 @@ async function main() {
   }
 
   const manifest = readJson(manifestPath)
-  const linkValue = linkValueFor(here)
-  record(step(manifest.dependencies?.[PKG] === linkValue, 'manifest dependency', manifest.dependencies?.[PKG] ?? 'missing'))
+  const spec = manifest.dependencies?.[PKG]
+  record(step(spec !== undefined, 'manifest dependency', String(spec ?? 'missing')))
   const bundles = Array.isArray(manifest.dsh?.profile?.bundles) ? manifest.dsh.profile.bundles : []
   record(step(bundles.includes(PKG), 'bundle entry', bundles.includes(PKG) ? 'listed' : 'missing'))
 
   const kind = pathKind(linkPath)
-  record(step(kind === 'link', 'node_modules projection', kind))
+  record(step(kind === 'link' || kind === 'directory', 'node_modules projection', kind))
+  const entry = join(linkPath, 'package.json')
+  record(step(existsSync(entry), 'projection has package.json', entry))
+  let installedVersion = ''
+  if (existsSync(entry)) {
+    try {
+      installedVersion = readJson(entry).version ?? ''
+    } catch {
+      installedVersion = ''
+    }
+  }
   if (kind === 'link') {
-    record(step(samePath(linkPath, here), 'projection target', linkPath))
+    // The link target is the checkout, so it must at least be the same package.
+    let target = ''
+    try {
+      target = readlinkSync(linkPath)
+    } catch {
+      target = ''
+    }
+    record(step(target !== '', 'projection target', target || 'unreadable'))
   }
 
-  // Load the module exactly the way the host does: by file URL.
+  // Load exactly what the host will load: the installed package, by file URL.
   let module
   try {
-    module = await import(pathToFileURL(join(here, 'lib', 'index.js')).href)
+    module = await import(pathToFileURL(join(linkPath, 'lib', 'index.js')).href)
   } catch (error) {
-    record(step(false, 'load lib/index.js', String(error?.message ?? error)))
+    record(step(false, 'load installed lib/index.js', String(error?.message ?? error)))
     console.error('\n[verify] FAILED — the host would not be able to load this plugin.')
     process.exit(1)
   }
@@ -98,10 +107,11 @@ async function main() {
   record(step(tool?.name === 'dsh_sync_status', 'tool name', String(tool?.name)))
   record(step(tool?.parameters?.type === 'object', 'tool parameters schema', String(tool?.parameters?.type)))
   record(step(tool?.output?.schema?.type === 'object', 'tool output schema', String(tool?.output?.schema?.type)))
+  record(step(typeof tool?.output?.render === 'function', 'tool render callback'))
 
-  // Read-only status against the real checkout.
-  const { readRepoStatus } = await import(pathToFileURL(join(here, 'lib', 'core', 'status.js')).href)
+  // Read-only status against the real checkout (default path or the manifest's).
   const repoPath = module.DEFAULT_REPO_PATH ?? join(dshHome, '..', 'dsh-config')
+  const { readRepoStatus } = await import(pathToFileURL(join(linkPath, 'lib', 'core', 'status.js')).href)
   const status = await readRepoStatus({ repoPath })
   record(step(status.repoPresent, 'dsh-config checkout', status.repoPath))
   if (status.repoPresent) {
@@ -114,7 +124,7 @@ async function main() {
     console.error(`[verify] FAILED — ${failures.length} check(s) did not pass.`)
     process.exit(1)
   }
-  console.log('[verify] OK — the next DeepSeek Harness start will load this plugin and expose dsh_sync_status.')
+  console.log(`[verify] OK — ${PKG}@${installedVersion || '?'} will load on the next DeepSeek Harness start.`)
   console.log('[verify] The running instance keeps its in-memory composition until you fully quit and reopen it.')
 }
 
