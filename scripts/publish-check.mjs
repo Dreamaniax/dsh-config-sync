@@ -24,7 +24,7 @@ const here = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const argv = process.argv.slice(2)
 let repo = here
 // Documented examples that are intentionally generic.
-const allowed = ['/Users/you/', 'Dreamaniax', 'awesome-dsh-plugin']
+const allowed = ['/Users/you/', 'Dreamaniax', 'awesome-dsh-plugin', 'users.noreply.github.com']
 for (let index = 0; index < argv.length; index += 1) {
   if (argv[index] === '--repo') {
     repo = resolve(argv[index + 1] ?? '')
