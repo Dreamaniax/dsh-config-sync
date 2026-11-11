@@ -18,6 +18,8 @@
 > 点它打开面板：顶部是体检结论（阻塞/警告数），下面四个动作——**体检 / 拉取计划 / 推送计划 / 密钥扫描**——都是对只读路由的 `GET`，面板只能看、不能写；每个结果旁边有「复制命令」，真正的写操作仍要 `/syn-dsh … now`。
 > `syn-dsh` 技能由插件自带（`assets/syn-dsh.md`，rank 600），不再放在配置仓库里。
 >
+> **升级插件后要 push 清单。** 配置仓库 `profiles/<profile>/package.json` 是 `apply.sh` 的来源；只改本机不改仓库，下次 `apply.sh --yes` 会把本机清单覆盖回仓库版本（曾因此把 `dsh-syn-config` 回滚成旧的 `dsh-config-sync`，状态灯随之变红）。`verify.mjs` 现在会比对这两份清单，不一致直接失败并给出修复路径。想彻底不漂移：`/syn-dsh push now`（或 `apply.sh` 之后手工提交该文件）。
+>
 > **密钥只由人注入。** 工具与斜杠命令都拒绝写 `inject`/`refresh`：`/syn-dsh secrets` 只放 `scan`/`fingerprint`，`dsh_sync_secrets` 在 `dry_run:false` 时直接拒绝，并提示自己执行 `bash ~/dsh-config/scripts/apply.sh --yes`。确需让工具代写，本机在插件行加 `allowSecretInject: true`（默认关闭）。
 >
 > 设计理由与后续阶段见主仓库的调研文档：`../research/syn-dsh-plugin/PLAN.md`。

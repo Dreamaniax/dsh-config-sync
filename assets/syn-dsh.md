@@ -231,3 +231,10 @@ bash ~/dsh-config/scripts/apply.sh --yes     # 从 ~/.dsh/secrets.env 注入
 ```
 
 要让模型工具代写，需在本机插件行显式加 `allowSecretInject: true`（默认关闭）。
+
+## 升级插件后必须同步清单
+
+配置仓库里的 `profiles/<profile>/package.json` 与 `cordis.patch.yml` 是 `apply.sh` 的**来源**。只在本机改插件、不推仓库，下一次 `apply.sh --yes` 会把本机清单覆盖回仓库版本（真发生过：`dsh-syn-config` 被回滚成旧的 `dsh-config-sync`，状态灯变红）。
+
+- 升级后：`/syn-dsh push now`（或手动提交该文件）
+- 自检：`node scripts/verify.mjs` 会比对「本机清单」与「仓库清单」，不一致直接失败

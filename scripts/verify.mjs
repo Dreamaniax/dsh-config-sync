@@ -136,6 +136,22 @@ async function main() {
     for (const note of status.notes) console.log(`       note: ${note}`)
   }
 
+  // The repo copy of the profile manifest is what `apply.sh` restores from.
+  // If it still names another package, the next apply rolls this machine back
+  // to it — which is exactly how a working install "became unavailable" once.
+  const repoManifestPath = join(repoPath, 'profiles', profileName, 'package.json')
+  if (existsSync(repoManifestPath)) {
+    const repoManifest = JSON.parse(readFileSync(repoManifestPath, 'utf8'))
+    const liveSync = Object.keys(manifest.dependencies ?? {}).filter((dep) => dep.includes('syn-config') || dep.includes('config-sync'))
+    const repoSync = Object.keys(repoManifest.dependencies ?? {}).filter((dep) => dep.includes('syn-config') || dep.includes('config-sync'))
+    const agree = liveSync.length === 1 && repoSync.length === 1 && liveSync[0] === repoSync[0]
+    record(step(agree, 'repo copy agrees with this install', agree ? liveSync[0] : `live=${liveSync.join(',') || 'none'} repo=${repoSync.join(',') || 'none'}`))
+    if (!agree) {
+      console.log('       the next `apply.sh --yes` would overwrite this profile from the repo:')
+      console.log(`       fix: update ${repoManifestPath} (dependencies + dsh.profile.bundles), then push`)
+    }
+  }
+
   console.log('')
   if (failures.length > 0) {
     console.error(`[verify] FAILED — ${failures.length} check(s) did not pass.`)
