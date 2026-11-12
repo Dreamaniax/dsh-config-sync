@@ -19,6 +19,20 @@ boundaries are written down rather than assumed.
 flag or the word `now`. `inject` and `refresh` — the two actions that write a real secret into the
 deployed configuration — are **refused** unless the machine opts in with `allowSecretInject: true`.
 
+## What a release contains
+
+The npm tarball and the public snapshot are built **from the tracked tree only**. Both are checked
+before every release:
+
+```bash
+node scripts/publish-check.mjs          # tracked files: no home paths, emails, scheduler labels, private repo URLs
+node scripts/publish-check.mjs --deep   # also reports private tokens in old commits
+```
+
+`--deep` is a report, not a gate: history is not shipped, because the public repository is a single
+clean snapshot commit. Old commits of the development repository do contain two private tokens (a private repository URL
+and a personal scheduler label); if that repository is ever made public, rewrite its history first. Nothing in the published package or snapshot comes from those commits.
+
 ## Reporting a vulnerability
 
 Open a private security advisory on https://github.com/Dreamaniax/dsh-syn-config, or a normal issue

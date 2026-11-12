@@ -1,6 +1,6 @@
 {
   "name": "dsh-syn-config",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "private": false,
   "description": "Cross-platform (macOS + Windows) DeepSeek Harness plugin that syncs DSH config — skills, profile settings, AGENTS.md — with a private dsh-config repository.",
   "type": "module",

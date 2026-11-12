@@ -24,6 +24,7 @@ const here = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const argv = process.argv.slice(2)
 let repo = here
 // Documented examples that are intentionally generic.
+const deep = process.argv.includes('--deep')
 const allowed = ['/Users/you/', 'Dreamaniax', 'awesome-dsh-plugin', 'users.noreply.github.com']
 for (let index = 0; index < argv.length; index += 1) {
   if (argv[index] === '--repo') {
@@ -73,6 +74,41 @@ for (const file of files) {
       if (allowed.some((entry) => value.includes(entry))) continue
       findings.push({ file, check: check.name, value })
     }
+  }
+}
+
+if (deep) {
+  // Only the tree ships (npm tarball + one-commit public snapshot), so a clean
+  // tree is what matters for a release. History is reported anyway: a repository
+  // that is ever made public would ship its history too.
+  let history = ''
+  try {
+    history = execFileSync('git', ['-C', repo, 'log', '-p', '--all', '--pretty=format:'], {
+      encoding: 'utf8',
+      maxBuffer: 256 * 1024 * 1024,
+    })
+  } catch {
+    console.log('[publish-check] history: unreadable, skipped')
+  }
+  const privateTokens = [
+    /com\.[a-z0-9-]+\.dsh\.[a-z0-9-]+/u,
+    /dsh-config\.git/u,
+    /\/Users\/(?!you\/|me\/)[A-Za-z0-9_.-]+\//u,
+    /[A-Za-z0-9._%+-]+@outlook\.com/u,
+  ]
+  const found = new Map()
+  for (const line of history.split('\n')) {
+    if (!line.startsWith('+')) continue
+    for (const pattern of privateTokens) {
+      const match = pattern.exec(line)
+      if (match) found.set(match[0], (found.get(match[0]) ?? 0) + 1)
+    }
+  }
+  if (found.size === 0) {
+    console.log('[publish-check] history: clean.')
+  } else {
+    console.log(`[publish-check] history: ${found.size} private token(s) in old commits — ${[...found.keys()].join(', ')}`)
+    console.log('[publish-check] history is not shipped (public snapshot = one clean commit); rewrite it before making this repository public')
   }
 }
 
