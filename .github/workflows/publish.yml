@@ -23,10 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No registry-url on purpose: setup-node would write an .npmrc with an
+      # empty _authToken, and npm must instead use the OIDC trusted publisher.
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Tag must match package.json
         if: startsWith(github.ref, 'refs/tags/')
@@ -45,8 +46,6 @@ jobs:
       - name: Publish to npm with provenance
         if: startsWith(github.ref, 'refs/tags/') && inputs.dry_run != true
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: GitHub release with the exact tarball
         if: startsWith(github.ref, 'refs/tags/') && inputs.dry_run != true
