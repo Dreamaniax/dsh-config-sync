@@ -84,7 +84,7 @@ test('push refuses a commit message that carries a URL or a credential', async (
   const repo = join(root, 'repo')
   mkdirSync(root, { recursive: true })
   git(root, ['init', '--quiet', '--bare', bare])
-  git(root, ['clone', '--quiet', bare, repo])
+  git(root, ['-c', 'core.autocrlf=false', 'clone', '--quiet', bare, repo])
   git(repo, ['config', 'user.email', 't@e.c'])
   git(repo, ['config', 'user.name', 'T'])
   write(join(repo, 'README.md'), '# seed\n')

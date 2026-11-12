@@ -41,7 +41,7 @@ function makeRemoteFixture(name) {
 
 function cloneAs(root, name) {
   const dir = join(root, name)
-  git(root, ['clone', '--quiet', '-b', 'main', join(root, 'origin.git'), dir])
+  git(root, ['-c', 'core.autocrlf=false', 'clone', '--quiet', '-b', 'main', join(root, 'origin.git'), dir])
   git(dir, ['config', 'user.email', 't@e.c'])
   git(dir, ['config', 'user.name', 'T'])
   git(dir, ['config', 'core.autocrlf', 'false'])

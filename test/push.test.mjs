@@ -44,7 +44,7 @@ function fixture(name) {
   git(seed, ['branch', '-M', 'main'])
   git(seed, ['push', '--quiet', '-u', 'origin', 'main'])
 
-  git(root, ['clone', '--quiet', '-b', 'main', bare, repo])
+  git(root, ['-c', 'core.autocrlf=false', 'clone', '--quiet', '-b', 'main', bare, repo])
   git(repo, ['config', 'user.email', 't@e.c'])
   git(repo, ['config', 'user.name', 'T'])
   git(repo, ['config', 'core.autocrlf', 'false'])
