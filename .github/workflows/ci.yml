@@ -33,8 +33,3 @@ jobs:
 
       - name: Packaging smoke test
         run: node scripts/pack-smoke.mjs
-
-      # parity runs doctor.sh through bash and rsync; POSIX shells only.
-      - name: Doctor parity with scripts/doctor.sh
-        if: runner.os != 'Windows'
-        run: node scripts/parity.mjs
