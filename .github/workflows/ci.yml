@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · node ${{ matrix.node }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ['20', '22']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Unit tests
+        run: node --test "test/*.test.mjs"
+
+      - name: Release hygiene gate
+        run: node scripts/publish-check.mjs
+
+      - name: Packaging smoke test
+        run: node scripts/pack-smoke.mjs
+
+      # parity runs doctor.sh through bash and rsync; POSIX shells only.
+      - name: Doctor parity with scripts/doctor.sh
+        if: runner.os != 'Windows'
+        run: node scripts/parity.mjs

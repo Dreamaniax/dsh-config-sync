@@ -106,3 +106,31 @@ icon: https://raw.githubusercontent.com/Dreamaniax/dsh-syn-config/main/assets/ic
 | `GET /plugins/dsh-syn-config/plan?action=pull|push` | dry-run 的变更计数（不是 diff 正文） | 60 s |
 
 服务端只放行 `GET`/`HEAD`，所以任何跨站请求都写不了东西；每个载荷都不含文件名与密钥值。面板的四个按钮（体检 / 拉取计划 / 推送计划 / 密钥扫描）就是这四条路由，结果旁有「复制命令」——真正的写操作仍是 `/syn-dsh pull now` / `push now`。
+
+## 9. CI 与自动发布（0.8.9 起）
+
+两条流水线，发布动作不再由人手执行：
+
+| 工作流 | 位置 | 触发 | 做什么 |
+| --- | --- | --- | --- |
+| `CI` | 开发仓库 `.github/workflows/ci.yml` | push main / PR / 手动 | 3 系统 × Node 20/22 矩阵：单测、`publish-check`、打包冒烟；非 Windows 另跑 `parity.mjs` |
+| `Publish` | 公开快照 `.github/workflows/publish.yml` | 推 `v*` tag / 手动（默认 dry-run） | 校验 tag 与版本一致 → 单测 → 门禁 `--deep` → 打包冒烟 → `npm publish --provenance` → 建 Release 并附 tarball |
+
+发布一个新版本：
+
+```bash
+npm version patch --no-git-tag-version   # 或 minor/major
+# 同步 index.json 的 version 与 publishTimestamp
+git commit -am "plugins: dsh-syn-config X.Y.Z"
+bash scripts/release-public.sh --yes     # 单提交快照 + 推 vX.Y.Z tag
+gh run watch -R Dreamaniax/dsh-syn-config
+```
+
+凭据（二选一，配置在**公开仓库**）：
+
+1. **npm trusted publisher（推荐）**：npmjs.com → 包设置 → Trusted Publisher →
+   GitHub `Dreamaniax/dsh-syn-config`、workflow `publish.yml`。之后不需要任何 secret。
+2. **`NPM_TOKEN` secret**：`gh secret set NPM_TOKEN -R Dreamaniax/dsh-syn-config`，用能发布该包的 granular token。
+
+没有凭据时，tag 触发的 Publish 会在发布步失败，但前面的门禁仍会跑——这正是要的信号：
+**先把闸门跑绿，再谈发布。**

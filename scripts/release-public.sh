@@ -12,6 +12,11 @@ PUBLIC_REMOTE="${PUBLIC_REMOTE:-public}"
 VERSION="$(node -p "require('./package.json').version")"
 MSG="feat: dsh-syn-config ${VERSION}"
 
+TAG="${2:-tag}"
+if [ "${TAG}" = "--no-tag" ]; then
+  echo "tagging disabled: snapshot only (used to bootstrap the publish workflow)"
+fi
+
 if [ "${1:-}" != "--yes" ]; then
   echo "would create a snapshot of $(pwd) at v${VERSION} and force-push it to '${PUBLIC_REMOTE}'"
   echo "run with --yes to actually publish the snapshot"
@@ -30,4 +35,10 @@ git add -A
 git -c user.name="Dreamaniax" -c user.email="dreamaniax@users.noreply.github.com" commit -q -m "$MSG"
 git remote add public "https://github.com/Dreamaniax/dsh-syn-config.git"
 git push --force public main
+if [ "${TAG}" != "--no-tag" ]; then
+  git tag -f "v${VERSION}"
+  git push --force public "refs/tags/v${VERSION}"
+fi
 echo "published snapshot v${VERSION} to Dreamaniax/dsh-syn-config"
+echo "tag v${VERSION} pushed — the Publish workflow now runs the gates, publishes to npm with provenance, and creates the GitHub release"
+echo "watch: gh run list -R Dreamaniax/dsh-syn-config --workflow Publish"
