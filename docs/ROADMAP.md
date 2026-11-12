@@ -20,18 +20,24 @@ Anything that weakens one of those three is necessary. Everything else is option
 
 ## Necessary for long-term maintenance
 
-### N1. Continuous integration on both systems
+### N1. Continuous integration on both systems — landed in 0.8.9
 
-There is no CI today; the 101 tests plus `parity.mjs` and `verify.mjs` only run when a human remembers.
+CI now runs the unit suite, the release gate and a packaging smoke test on
+`ubuntu-latest`, `macos-latest` and `windows-latest` across Node 20 and 22
+(`.github/workflows/ci.yml`). `parity.mjs` and `verify.mjs` remain local gates
+because they need a sibling `dsh-config` checkout. Windows real-hardware
+acceptance is still pending (`docs/WINDOWS-TEST.md`).
 A GitHub Actions matrix (`macos-latest`, `windows-latest`, `ubuntu-latest`) running
 `node --test`, `parity.mjs`, and a packaging smoke test (`npm pack` → install into a throwaway
 profile) is the single cheapest way to stop “works on my Mac” from returning.
 **Why necessary:** the Windows path (junction, atomic rename, `windowsHide`) has never run on real
 hardware; a matrix is the only repeatable proof.
 
-### N2. Release automation with provenance
+### N2. Release automation with provenance — landed in 0.8.9
 
-Today a release is a hand-run sequence: bump, test, publish, snapshot, tag, release. That is exactly
+A release is now: bump, commit, `scripts/release-public.sh --yes` (snapshot +
+tag). The public snapshot's `publish.yml` re-runs every gate, publishes with
+provenance and creates the release with the exact tarball. That is exactly
 where the 0.8.3 incident came from (a comment block shipped because the gate's exit code was masked by
 a pipe). A tag-triggered workflow that runs `publish-check`, tests, `npm publish --provenance`, then
 creates the snapshot and the GitHub release makes the order machine-enforced instead of remembered.

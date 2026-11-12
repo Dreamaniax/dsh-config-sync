@@ -31,6 +31,9 @@ TMP="$(mktemp -d)"
 git ls-files -z | tar --null -T - -cf - | tar -xf - -C "$TMP"
 cd "$TMP"
 git init -q -b main
+# Development CI belongs to the private repository; the snapshot carries only
+# the publish workflow.
+rm -f .github/workflows/ci.yml
 git add -A
 git -c user.name="Dreamaniax" -c user.email="dreamaniax@users.noreply.github.com" commit -q -m "$MSG"
 git remote add public "https://github.com/Dreamaniax/dsh-syn-config.git"
@@ -40,5 +43,9 @@ if [ "${TAG}" != "--no-tag" ]; then
   git push --force public "refs/tags/v${VERSION}"
 fi
 echo "published snapshot v${VERSION} to Dreamaniax/dsh-syn-config"
-echo "tag v${VERSION} pushed — the Publish workflow now runs the gates, publishes to npm with provenance, and creates the GitHub release"
-echo "watch: gh run list -R Dreamaniax/dsh-syn-config --workflow Publish"
+if [ "${TAG}" != "--no-tag" ]; then
+  echo "tag v${VERSION} pushed — the Publish workflow runs the gates, publishes to npm with provenance, and creates the GitHub release"
+  echo "watch: gh run list -R Dreamaniax/dsh-syn-config --workflow Publish"
+else
+  echo "no tag pushed (--no-tag): nothing published to npm"
+fi
