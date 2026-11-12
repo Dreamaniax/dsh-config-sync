@@ -1,0 +1,79 @@
+{
+  "format": 1,
+  "title": {
+    "en": "Dreamaniax plugins",
+    "zh": "Dreamaniax 插件"
+  },
+  "description": {
+    "en": "Plugins maintained by Dreamaniax.",
+    "zh": "Dreamaniax 维护的插件。"
+  },
+  "metadata": {
+    "categories": {
+      "workflow": {
+        "title": {
+          "en": "Workflow",
+          "zh": "工作流"
+        }
+      }
+    },
+    "labels": {
+      "sync": {
+        "title": {
+          "en": "Sync",
+          "zh": "同步"
+        }
+      }
+    },
+    "sortKeys": {
+      "stars": {
+        "title": {
+          "en": "Stars",
+          "zh": "星标"
+        },
+        "order": "desc"
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "dsh-syn-config",
+      "title": {
+        "en": "DSH Config Sync",
+        "zh": "DSH 配置同步"
+      },
+      "description": {
+        "en": "Keeps DSH skills, profile settings and AGENTS.md in sync with a private git repository: status, six-section health check, fast-forward pull, secret redaction and scan, and a snapshot-plus-push flow. All writes default to a dry run.",
+        "zh": "把 DSH 技能、profile 设置与 AGENTS.md 与私有 git 仓库双向同步：状态、六节体检、快进拉取、密钥脱敏与扫描，以及快照+推送；所有写操作默认 dry run。"
+      },
+      "author": "Dreamaniax",
+      "homepage": "https://github.com/Dreamaniax/dsh-syn-config#readme",
+      "repository": {
+        "url": "https://github.com/Dreamaniax/dsh-syn-config"
+      },
+      "icon": "assets/icon-180.png",
+      "category": "workflow",
+      "keywords": [
+        "sync",
+        "git",
+        "config",
+        "skills"
+      ],
+      "labels": [
+        "sync"
+      ],
+      "versions": [
+        {
+          "version": "0.8.5",
+          "publishTimestamp": 1794450982,
+          "source": {
+            "type": "npm"
+          },
+          "engines": {
+            "dsh": ">=0.2.2-rc.1 <0.3.0-0"
+          }
+        }
+      ]
+    }
+  ]
+}
