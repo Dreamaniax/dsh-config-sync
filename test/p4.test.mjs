@@ -80,7 +80,9 @@ test('the bundled skill provider serves the skill body', async () => {
   assert.equal(candidates.length, 1)
   assert.equal(candidates[0].name, 'syn-dsh')
   assert.equal(candidates[0].rank, 600)
-  assert.equal(candidates[0].invocation.userInvocable, true)
+  // Only the command owns the slash entry; the skill must stay model-only.
+  assert.equal(candidates[0].invocation.userInvocable, false)
+  assert.equal(candidates[0].invocation.modelInvocable, true)
   const loaded = await provider.get(candidates[0])
   assert.ok(loaded.content.includes('Syn DSH'))
   assert.ok(loaded.content.length > 1000)
