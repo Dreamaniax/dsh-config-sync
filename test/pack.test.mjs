@@ -86,9 +86,9 @@ test('snapshot writes skills, AGENTS.md, MANIFEST and normalised links', () => {
 
   const pkg = JSON.parse(readFileSync(join(repo, 'profiles', 'desktop', 'package.json'), 'utf8'))
   // The spec must be relative now, and it must still resolve to the original path.
-  assert.ok(pkg.dependencies.local.startsWith('link:..'))
+  assert.ok(pkg.dependencies.local.startsWith('link:..'), `expected a relative link spec, got ${pkg.dependencies.local}`)
   const resolved = resolve(join(home, 'profiles', 'desktop'), pkg.dependencies.local.slice('link:'.length))
-  assert.equal(resolved, '/Users/me/code/local-plugin')
+  assert.equal(resolved, resolve('/Users/me/code/local-plugin'))
 })
 
 test('snapshot keeps the repository reasoningEffort instead of the local one', () => {

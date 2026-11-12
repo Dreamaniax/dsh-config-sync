@@ -7,6 +7,10 @@ import { after, test } from 'node:test'
 
 import { runDoctor } from '../lib/core/doctor.js'
 
+// CI machines have no dsh CLI; point the doctor at node itself so the
+// toolchain check exercises its success path instead of warning about the host.
+process.env.DSH_CLI = process.execPath
+
 /**
  * A doctor fixture: one git checkout plus one DSH home, both synthetic, so the
  * six sections can be exercised without touching the real configuration.

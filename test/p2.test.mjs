@@ -33,7 +33,8 @@ function makeRemoteFixture(name) {
   writeFileSync(join(seed, 'weekly', 'run.sh'), '#!/bin/sh\necho run\n')
   git(seed, ['add', '-A'])
   git(seed, ['commit', '--quiet', '-m', 'init'])
-  git(seed, ['push', '--quiet', '-u', 'origin', 'HEAD:main'])
+  git(seed, ['branch', '-M', 'main'])
+  git(seed, ['push', '--quiet', '-u', 'origin', 'main'])
   return { root, bare, seed }
 }
 

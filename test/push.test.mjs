@@ -40,7 +40,8 @@ function fixture(name) {
   write(join(seed, '.gitignore'), 'MANIFEST.local.md\n')
   git(seed, ['add', '-A'])
   git(seed, ['commit', '--quiet', '-m', 'init'])
-  git(seed, ['push', '--quiet', '-u', 'origin', 'HEAD:main'])
+  git(seed, ['branch', '-M', 'main'])
+  git(seed, ['push', '--quiet', '-u', 'origin', 'main'])
 
   git(root, ['clone', '--quiet', '-b', 'main', bare, repo])
   git(repo, ['config', 'user.email', 't@e.c'])

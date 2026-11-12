@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { after, test } from 'node:test'
 
 import { expandPath, parsePorcelain, readRepoStatus } from '../lib/core/status.js'
@@ -32,7 +32,8 @@ test('expandPath expands a leading tilde for both separators', () => {
   assert.equal(expandPath('~\\dsh-config', 'C:\\Users\\u'), join('C:\\Users\\u', 'dsh-config'))
   assert.equal(expandPath('~', '/home/u'), '/home/u')
   assert.equal(expandPath('', '/home/u'), '/home/u')
-  assert.equal(expandPath('/abs/path', '/home/u'), '/abs/path')
+  // path.resolve() puts a root-relative path on the current drive on Windows.
+  assert.equal(expandPath('/abs/path', '/home/u'), resolve('/abs/path'))
 })
 
 test('parsePorcelain counts paths, not NUL tokens', () => {
