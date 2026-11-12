@@ -43,9 +43,17 @@ jobs:
       - name: Packaging smoke test
         run: node scripts/pack-smoke.mjs
 
+      - name: Show the publish toolchain
+        if: startsWith(github.ref, 'refs/tags/') && inputs.dry_run != true
+        run: |
+          node --version
+          npm --version
+          npm config get registry
+          env | grep -E '^(ACTIONS_ID_TOKEN|GITHUB_)' | sed -E 's/=.*/=<set>/' | sort
+
       - name: Publish to npm with provenance
         if: startsWith(github.ref, 'refs/tags/') && inputs.dry_run != true
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --loglevel verbose
 
       - name: GitHub release with the exact tarball
         if: startsWith(github.ref, 'refs/tags/') && inputs.dry_run != true
