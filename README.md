@@ -2,149 +2,127 @@
 
 <p align="center"><img src="assets/icon-180.png" width="96" height="96" alt="dsh-syn-config icon"></p>
 
-跨电脑同步 DSH 配置（技能 / profile 设置 / AGENTS.md）的 DeepSeek Harness 插件，**macOS 与 Windows 同一份代码**。
+Keep a DeepSeek Harness setup — skills, profile settings, `AGENTS.md` — in sync across computers
+through a private git repository. One codebase for macOS and Windows.
+把 DeepSeek Harness 的配置（技能 / profile 设置 / `AGENTS.md`）通过一个私有 git 仓库在多台电脑之间同步。macOS 与 Windows 共用同一份代码。
 
-> 状态：**P7（交互）**。六个工具 + 一个斜杠命令 + 一枚状态灯与它的面板 + 随包技能：
-> - `dsh_sync_status`：仓库分支 / 上游 / 领先落后 / 脏文件数（默认不联网）。
-> - `dsh_sync_doctor`：`doctor.sh` 的 Node 移植，六节体检，退出码 0-2-1 与脚本一致。
-> - `dsh_sync_pull`：`git pull --ff-only` + 镜像 skills / agents-skills / weekly；**默认 dry-run**。
-> - `dsh_sync_secrets`：scan / redact / inject / refresh / fingerprint；**默认 dry-run**，注入后残留占位符直接失败且不写盘。
->
-> - `dsh_sync_push`：快照 → lint 闸门 → 脱敏 → 明文扫描 → 提交 → 推送；**默认 dry-run**；分叉时停下，不 rebase、不 force；提交信息含 URL/凭据会被拒绝。
-> - `dsh_sync_diag`：报告本次激活真正注册了什么（服务是否可用、每一步的成败与错误原文）——命令或状态卡不见时先看它。
->
-> 引导（新机第一条命令）仍由 `dsh-config/scripts/apply.sh` 负责——插件装不上时它不在。
->
-> `/syn-dsh status|doctor|pull|push|secrets`：斜杠命令，宿主半执行、不进模型消息；`/syn-dsh push now` 才真推。
-> 输入框上方的状态圆点：绿=已同步、黄=有漂移（↑领先/↓落后/±脏）、红=不可用。
-> 点它打开面板：顶部是体检结论（阻塞/警告数），下面四个动作——**体检 / 拉取计划 / 推送计划 / 密钥扫描**——都是对只读路由的 `GET`，面板只能看、不能写；每个结果旁边有「复制命令」，真正的写操作仍要 `/syn-dsh … now`。
-> `syn-dsh` 技能由插件自带（`assets/syn-dsh.md`，rank 600），不再放在配置仓库里。
->
-> **升级插件后要 push 清单。** 配置仓库 `profiles/<profile>/package.json` 是 `apply.sh` 的来源；只改本机不改仓库，下次 `apply.sh --yes` 会把本机清单覆盖回仓库版本（曾因此把 `dsh-syn-config` 回滚成旧的 `dsh-config-sync`，状态灯随之变红）。`verify.mjs` 现在会比对这两份清单，不一致直接失败并给出修复路径。想彻底不漂移：`/syn-dsh push now`（或 `apply.sh` 之后手工提交该文件）。
->
-> **密钥只由人注入。** 工具与斜杠命令都拒绝写 `inject`/`refresh`：`/syn-dsh secrets` 只放 `scan`/`fingerprint`，`dsh_sync_secrets` 在 `dry_run:false` 时直接拒绝，并提示自己执行 `bash ~/dsh-config/scripts/apply.sh --yes`。确需让工具代写，本机在插件行加 `allowSecretInject: true`（默认关闭）。
->
-> 设计理由与后续阶段见主仓库的调研文档：`../research/syn-dsh-plugin/PLAN.md`。
+---
 
-## 为什么是插件，而不是又一层 shell
+## Features · 功能
 
-| | 现状（`~/dsh-config/scripts/*.sh`） | 本插件 |
+| Feature | 功能 | What it does · 说明 |
 |---|---|---|
-| Windows | 需要 Git Bash 兜底（12 个 `.cmd`） | 原生 Node，无 shell 依赖 |
-| 模型拿到的东西 | 中文日志文本，需要自己解析 | 结构化 JSON（分支/领先/落后/脏文件），工具 schema 强制校验 |
-| 跨平台差异 | rsync / sed / chmod / od 各自分支 | 一个 `execFile('git', argv)`，两边一致 |
-| 引导（新机第一条命令） | 脚本仍是唯一入口 | **仍由脚本负责**——插件装不上时它不存在 |
+| Status tool | 状态 | Reads branch, upstream, ahead/behind, dirty count. Network is opt-in (`fetch: true`). · 读分支、上游、领先/落后、脏文件数；默认不联网。 |
+| Doctor tool | 体检 | Six sections with the same verdicts and exit codes as `doctor.sh` (0 clean / 2 warnings / 1 blocking), returned as structured JSON. · 六节体检，判定与退出码和 `doctor.sh` 一致，返回结构化 JSON。 |
+| Pull tool | 拉取 | `git pull --ff-only`, then mirrors `skills/`, `agents-skills/`, `weekly/` into `~/.dsh`. Dry-run by default. · 快进拉取后镜像技能与周报脚本；默认演练。 |
+| Push tool | 推送 | Snapshot → lint → redact → scan → commit → push. Dry-run by default; stops on divergence instead of rebasing or forcing. · 快照→lint→脱敏→扫描→提交→推送；默认演练；分叉即停。 |
+| Secrets tool | 密钥 | `scan` / `redact` / `inject` / `refresh` / `fingerprint`. Refuses to write a real secret unless the machine explicitly opts in. · 五个动作；除非本机显式开启，否则拒绝写入真实密钥。 |
+| Diagnostics tool | 自检 | Reports what actually registered at startup — service availability and the error text of each step. · 报告本次启动真正注册了什么：服务可用性与每一步的错误原文。 |
+| Slash command | 斜杠命令 | `/syn-dsh status · doctor · pull · push · secrets`; writes need the word `now`. · 写操作必须带 `now`。 |
+| Status chip + panel | 状态灯与面板 | A dot above the input box, with a read-only panel behind it (see UI below). · 输入框上方的圆点，点开是只读面板（见下）。 |
+| Bundled skill | 随包技能 | `syn-dsh` ships inside the package, so the instructions travel with the plugin. · 技能随包分发，不依赖配置仓库。 |
 
-分工：**插件当手**（日常读写本机与仓库）、**脚本当门**（引导、提交闸门、CI 回归）、**技能当脑**（`/syn-dsh` 决定先做什么）。
+## UI · 界面
 
-## 安装
+Three surfaces, all inside DeepSeek Harness. There is no separate web app, no settings window, and no
+tray icon.
+三个界面，全部在 DeepSeek Harness 内。没有独立网页、没有设置窗、没有托盘图标。
 
-### 开发 / 离线（link 安装，本仓库直接生效）
+### 1. Status chip · 状态圆点
+
+Above the composer, always visible. Colour answers “am I in sync?”.
+
+| Colour | Label | Meaning |
+|---|---|---|
+| 🟢 green | `main 已同步` | Clean, nothing ahead/behind. · 干净，无领先/落后。 |
+| 🟡 amber | `main ↑2 ±1` | Drift: `↑` ahead, `↓` behind, `±` dirty files. · 有漂移。 |
+| 🔴 red | `无仓库` / `读取失败` | `~/dsh-config` missing, or git could not be read. · 仓库缺失或读取失败。 |
+| ⚪️ grey | `同步就位` / `检查中…` | Route not exposed in this composition, or still loading. Never painted red for that. · 路由不可用或加载中，不误报为故障。 |
+
+### 2. Panel · 面板
+
+Click the chip. Width ≈360 px, four actions, each a read-only `GET`:
+
+| Button | 按钮 | Shows · 展示 | Acts via · 真正的写操作 |
+|---|---|---|---|
+| 体检 | Doctor | Section marks (`✅⚠️❌`) + blocking/warning counts | `/syn-dsh doctor` |
+| 拉取计划 | Pull plan | Incoming commits, `before → after`, per-mirror `+add ~update -delete` | `/syn-dsh pull now` |
+| 推送计划 | Push plan | Change counts, gate results (`lint / redact / scan`), commit state | `/syn-dsh push now` |
+| 密钥扫描 | Secrets scan | Number of plaintext hits | `/syn-dsh secrets scan` |
+
+Every result has a **复制命令** button that copies the exact command that would perform the write; the
+panel itself cannot write.
+每个结果旁有「复制命令」，复制的是真正执行写入的那条命令；面板本身不能写。
+
+### 3. Command output · 命令输出
+
+`/syn-dsh` renders compact tables (status row, doctor six rows with counts, plan diff rows). The same
+data is available as JSON from the six tools, so agents can act on it without parsing prose.
+`/syn-dsh` 输出紧凑表格；同样的数据也能从六个工具以 JSON 取得，模型不必解析自然语言。
+
+## Boundaries · 边界
+
+| Boundary | 边界 | Detail · 细节 |
+|---|---|---|
+| No GUI writes | 面板不写 | All four panel actions are `GET` on read-only routes; every other method returns 405. · 四个面板动作都是只读 GET，其它方法 405。 |
+| Dry-run by default | 默认演练 | `pull`, `push`, and all secret writes do nothing until an explicit flag or the word `now`. · 未显式确认前不产生任何写入。 |
+| Git is never rewritten | 不改写历史 | No `rebase`, no `push --force`, no `reset --hard`. Divergence stops and asks a human to merge. · 分叉时停下交给人合并。 |
+| Secrets stay human-injected | 密钥由人注入 | `inject` / `refresh` are refused unless the profile opts in with `allowSecretInject: true`. The documented path is running `apply.sh --yes` yourself. · 默认拒绝，推荐人工执行。 |
+| No telemetry, no outbound calls | 无遥测、无外联 | Only the git remote you configured; one loopback-bound HTTP server for the panel. · 只连你自己配置的 git 远端；面板只走本机回环。 |
+| Upload scope is explicit | 上传范围明确 | `skills/`, `agents-skills/`, `AGENTS.md`, five profile files. `.dsh-market/` is opt-in; `sessions/`, `secrets.env`, credentials are never uploaded. · 会话、密钥、凭据永不上传。 |
+| The plugin is not the bootstrap | 插件不是引导 | On a brand-new machine the plugin does not exist yet; `dsh-config/scripts/apply.sh` is what installs it. · 新机第一条命令仍是 `apply.sh`。 |
+| Not a scheduler | 不是调度器 | It syncs `weekly/` scripts but never installs or edits cron / launchd / Task Scheduler entries. · 只同步脚本，不装定时任务。 |
+
+## Install · 安装
+
+Production (npm):
 
 ```bash
-node scripts/install.mjs --dry-run    # 先看会改什么
-node scripts/install.mjs              # 写 profile manifest + 建 link
-node scripts/verify.mjs               # 校验 manifest / link / 模块 / 工具 / 仓库
+dsh plugin --profile desktop add dsh-syn-config
 ```
 
-它会：备份 `~/.dsh/profiles/desktop/package.json`（`.bak-dsh-syn-config`）→ 写 `link:` 依赖 → 把 `dsh-syn-config` 追加进 `dsh.profile.bundles` → 在 `profile/node_modules/` 建 **symlink（macOS）/ junction（Windows）** → 重新读盘逐项校验。
-
-安装后**完全退出并重开 DeepSeek Harness**（macOS `Cmd+Q` / Windows 托盘 → 退出），新会话里才会有 `dsh_sync_status`。
-
-### 生产（正式分发）
+From GitHub:
 
 ```bash
 dsh plugin --profile desktop add github:Dreamaniax/dsh-syn-config
 ```
 
-注意：`dsh plugin add` 只写 `dependencies` + lock，**不写** `dsh.profile.bundles`；只有 GUI 的「设置 → 插件」安装会写 bundles。所以走 CLI 时要么再手工补一行 bundles，要么用 GUI 安装。
+`dsh plugin add` writes `dependencies` + lock but **not** `dsh.profile.bundles`; the GUI path
+(Settings → Plugins) writes both. After installing, fully quit and reopen DeepSeek Harness.
+`dsh plugin add` 只写依赖与 lock，不写 bundles；GUI 安装会写全。装完完全退出重开。
 
-### 卸载
+Development / offline (link install):
+
+```bash
+node scripts/install.mjs --dry-run
+node scripts/install.mjs
+node scripts/verify.mjs
+```
+
+Uninstall:
 
 ```bash
 node scripts/uninstall.mjs --dry-run
 node scripts/uninstall.mjs
 ```
 
-只删投影（link/junction，绝不穿过 link 删目标）与 manifest 里的两处条目，保留备份；仓库本身不受影响。
+The uninstaller removes only the projection (symlink / junction, never following it into the target)
+and the two manifest entries; backups are kept.
+卸载只删投影与清单两处条目，保留备份。
 
-## 工具
+## Command reference · 命令参考
 
-### `dsh_sync_doctor`
-
-`dsh-config/scripts/doctor.sh` 的结构化版本：同样的六节、同样的判定、同样的退出码（0 干净 / 2 有警告 / 1 有阻塞），但返回的是 JSON 分节而不是中文日志。
-
-| 参数 | 类型 | 说明 |
+| Command | 命令 | Meaning · 含义 |
 |---|---|---|
-| `repo` | string（可选） | 仓库路径，支持 `~`；默认取配置 |
-| `offline` | boolean（可选） | 跳过 `git fetch` 与远端比对 |
-| `profile` | string（可选） | 要体检的 profile，默认 `desktop` |
+| `/syn-dsh status` | 状态 | Same data as the chip, as text. · 与状态灯同源。 |
+| `/syn-dsh doctor` | 体检 | Six sections; add `online` to allow `git fetch`. · 六节体检，`online` 才联网。 |
+| `/syn-dsh pull` | 拉取 | Dry-run; `pull now` performs the fast-forward pull + mirror. · 默认演练。 |
+| `/syn-dsh push` | 推送 | Dry-run; `push now` performs snapshot → gates → commit → push. · 默认演练。 |
+| `/syn-dsh secrets` | 密钥 | `scan` or `fingerprint`; write actions are refused here. · 只读动作。 |
 
-每节返回 `{ id, title, status: ok|warn|error, items: [{ level, text }] }`。与脚本的对等性由 `node scripts/parity.mjs` 逐项比对（当前 13/13 一致）。
+## Configuration · 配置
 
-### `dsh_sync_push`
-
-| 参数 | 类型 | 说明 |
-|---|---|---|
-| `repo` | string（可选） | 仓库路径，默认取配置 |
-| `dry_run` | boolean（可选，**默认 true**） | 只算：快照计划 + lint + 脱敏 + 扫描，全都不写 |
-| `message` | string（可选） | 提交信息，默认 `sync: <本地日期时间>` |
-| `include_profile` | boolean（可选，默认 true） | 是否带 profile 设置与插件清单（`--no-profile` 的等价物） |
-| `allow_delete` | boolean（可选，默认 false） | 才允许删除仓库里多出来的条目；默认只报告 |
-
-顺序是契约不是细节：**pack → lint → redact → scan → commit → push**。先脱敏再扫描，扫描不通过就不提交；分叉时保留本地提交并让人手工合，**永不 rebase、永不 force**。
-
-### `dsh_sync_pull`
-
-| 参数 | 类型 | 说明 |
-|---|---|---|
-| `repo` | string（可选） | 仓库路径，默认取配置 |
-| `dry_run` | boolean（可选，**默认 true**） | 只 fetch 并报告计划，不动 HEAD、不写本机 |
-| `delete_local` | boolean（可选，默认 false） | 同时删除仓库里已不存在的本机技能（危险，默认关） |
-
-`git pull --ff-only`；分叉时返回 `ok:false` 并保留本地提交，不做合并、更不 reset。镜像目标：`skills/`、`agents-skills/`、`weekly/`（weekly 的 `.sh` 自动 `chmod +x`）。
-
-### `dsh_sync_secrets`
-
-| `action` | 作用方向 | 说明 |
-|---|---|---|
-| `scan` | 仓库（只读） | 找明文密钥，命中即 `exitCode:1` |
-| `redact` | 仓库副本 | 真实值 → `__KEY__` |
-| `inject` | 已部署副本 | `__KEY__` → 真实值；**残留占位符则不写盘** |
-| `refresh` | 已部署副本 | 轮换后重写 `Authorization: "Bearer …"` |
-| `fingerprint` | 只读 | 只给 sha256 前 8 位与长度 |
-
-替换一律**字面量**（`sed` 元字符 bug 的修复点）；写前留 `<file>.bak-<ISO>` 备份；返回值、日志、渲染里都没有明文。
-
-### `dsh_sync_status`
-
-| 参数 | 类型 | 说明 |
-|---|---|---|
-| `repo` | string（可选） | 仓库路径，支持 `~/dsh-config`；默认取配置里的 `repoPath` |
-| `fetch` | boolean（可选） | 先 `git fetch --prune`，再算领先/落后；默认取配置（关） |
-
-返回（`output.schema` 强制）：
-
-```json
-{
-  "ok": true,
-  "repoPath": "/Users/you/dsh-config",
-  "repoPresent": true,
-  "branch": "main",
-  "upstream": "origin/main",
-  "ahead": 2,
-  "behind": 0,
-  "dirty": 1,
-  "dirtyFiles": [" M AGENTS.md"],
-  "notes": []
-}
-```
-
-边界情况全部**以数据返回、不抛异常**（抛异常会让宿主把工具调用判错）：仓库不存在 → `repoPresent:false`；不是 git 仓库 → `ok:false` + `notes`；没有上游 → `notes` 说明并停止计算领先/落后；git 缺失（含 Windows 的安装提示）→ `notes` 给出可操作建议。
-
-## 配置
-
-在 profile 的 `cordis.patch.yml` 里那行插件下加 `config`（注释示例见本仓库 `cordis.patch.yml`）：
+Add `config` to the plugin row in the profile's `cordis.patch.yml`:
 
 ```yaml
 - insert:
@@ -154,81 +132,44 @@ node scripts/uninstall.mjs
         repoPath: '~/dsh-config'
         gitTimeoutMs: 15000
         fetchOnStatus: false
+        allowSecretInject: false
 ```
 
-P0 没有导出 Config schema（避免依赖 schemastery，见下），所以 `config` 未做 schema 校验——`apply()` 里逐字段自检并回退默认值。
-
-## 为什么宿主半不 import 任何 `@deepseek-ai/*`
-
-`link:` 安装时插件真实文件在 checkout 里，Node 按真实路径解析裸导入；而 profile 的 `node_modules` 并不含 `@deepseek-ai/dsh-tools`（它们在应用打包内），于是 `import '@deepseek-ai/dsh-tools'` 会在 link 安装下解析失败。因此宿主半只用 `ctx` 注入的服务 + Node 内置模块：
-
-- 工具定义直接用**编译后的 JSON Schema**（`ctx.tools.register` 校验的就是这个形状：必须有 `output.render`，且属性不能写 `required: true` 那种 authoring 简写，要用 `required: [...]` 数组）。
-- 代价：失去 `defineTool` 的参数预校验 → 我们在 `execute()` 里自己收窄参数并把失败作为数据返回。
-
-这条也顺带让测试能在裸 Node 下跑，不需要任何安装步骤。
-
-## 隐私边界
-
-| 面 | 做法 |
-|---|---|
-| 上传范围 | `skills/`、`agents-skills/`、`AGENTS.md`、profile 五文件；`.dsh-market/` **默认不上传**（`include_market` 才带） |
-| 密钥 | 脱敏/注入都是字面量替换；仓库副本与 `AGENTS.md` 一起处理；注入后残留占位符 → 拒绝写盘 |
-| 扫描 | 工作树 + `deep:true` 时最近 200 次提交；规则覆盖 `as_sk_/ghp_/github_pat_/sk-/sk-proj-/AKIA/AIza/xox*/JWT/PEM/Bearer/通用 api_key 赋值` |
-| 历史命中 | 命中只给 commit + 掩码预览（`AKIAIO…MPLE`），不回传原值；提示先轮换再谈改写历史 |
-| 提交信息 | 含 URL 或凭据特征直接拒绝（进历史不可撤回） |
-| 本地 HTTP 路由 | 只返回分支/领先落后/脏计数，**不返回文件名**；`no-store` |
-| 输出路径 | notes/渲染里的绝对路径缩成 `~/…` |
-| 发布 | `node scripts/publish-check.mjs` 扫 tracked 文件里的账号名、私有仓库 URL、launchd 标签、家目录路径，非零退出可做发布闸门 |
-
-## 平台差异（已在代码里处理）
-
-| 关注点 | macOS | Windows |
+| Key | Default | Meaning · 含义 |
 |---|---|---|
-| profile 投影 | symlink | **junction**（不需要管理员权限 / 开发者模式），失败再退 dir symlink |
-| manifest 原子写 | rename | 同名 rename；遇到杀软/索引器占用（`EACCES`/`EBUSY`/`EPERM`）退避重试 |
-| 路径 | `~/…`、`/` | `~\…` 同样支持；`isAbsolute`/`join` 处理盘符 |
-| git | Apple git | Git for Windows 的 `git.exe`（不在 PATH 时 `notes` 会给安装提示） |
-| 换行 | LF | `.gitattributes` 固定 `*.sh`/`*.js` LF、`*.cmd`/`*.ps1` CRLF |
-| 控制台 | 直接输出 | `execFile(..., { windowsHide: true })`，不弹黑框 |
+| `repoPath` | `~/dsh-config` | Checkout to read and write. · 仓库路径。 |
+| `gitTimeoutMs` | 15000 | Timeout for a single git call. · 单次 git 调用超时。 |
+| `fetchOnStatus` | `false` | Let status reach the network by default. · 状态默认是否联网。 |
+| `profile` | `desktop` | Profile inspected by doctor. · 体检的 profile。 |
+| `dshHome` | `~/.dsh` | Where the live configuration lives. · 本机配置根目录。 |
+| `allowSecretInject` | `false` | Allow tools to write real secrets. Leave off. · 是否允许工具写真实密钥，建议保持关闭。 |
 
-## 开发
+## Privacy · 隐私
+
+| Surface | 面 | Behaviour · 行为 |
+|---|---|---|
+| Redaction | 脱敏 | Literal replacement, real value → `__KEY__`; backups are `0600`. · 字面量替换，备份 0600。 |
+| Injection | 注入 | Refused if any placeholder would remain; always written with a backup. · 有残留占位符则拒绝写盘。 |
+| Scanning | 扫描 | Working tree, plus the last 200 commits with `deep:true`; provider-prefixed shapes are decisive. · 工作树 + 最近 200 条提交。 |
+| Reporting | 报告 | Findings show a commit and a masked prefix, never the value; absolute paths collapse to `~/…`. · 只给掩码，不回传原值。 |
+| Commit messages | 提交信息 | Messages containing a URL or credential shape are rejected before commit. · 含 URL/凭据特征直接拒绝。 |
+| Local routes | 本机路由 | Only counts and branch names; no file names; `Cache-Control: no-store`. · 不含文件名。 |
+| Release gate | 发布闸门 | `node scripts/publish-check.mjs` scans the tracked tree; `--deep` also reports private tokens in old commits. · 发布前必跑。 |
+
+## Development · 开发
 
 ```bash
-node --test "test/*.test.mjs"     # 26 个用例：解析/脱敏/扫描/体检分节 + 真 git 仓库 + 插件契约
-node scripts/parity.mjs           # 与 scripts/doctor.sh 逐项比对（同状态、同退出码）
-node --test test/mirror.test.mjs  # 镜像与 rsync -a --delete 的树对比
-node scripts/install.mjs --dry-run
-node scripts/verify.mjs
+node --test "test/*.test.mjs"    # 101 tests: parsing, redaction, scanning, doctor sections,
+                                 # real git repositories, plugin contract, HTTP routes
+node scripts/parity.mjs          # doctor parity with scripts/doctor.sh
+node scripts/verify.mjs          # manifest / projection / module / tools / repository
+node scripts/publish-check.mjs   # release hygiene gate
 ```
 
-`test/status.test.mjs` 在临时目录里 `git init` 真仓库来断言；`test/plugin.test.mjs` 用假 `ctx` 断言注册形态与 `execute` 返回值形状。
+The browser half is plain JavaScript with no build step; the module table supplies React.
+浏览器半是纯 JavaScript，无构建步骤。
 
-## 验收清单
+## License · 许可
 
-| # | 验收项 | 命令 / 判据 |
-|---|---|---|
-| 1 | manifest 依赖 + bundles 条目 | `node scripts/verify.mjs` 前两项 `ok` |
-| 2 | 投影是 link 且指向本 checkout | `verify.mjs` 的 projection 两项 |
-| 3 | 模块可被宿主加载 | `verify.mjs` 的 load/export 四项 |
-| 4 | 只注册一个工具且 schema 合法 | `verify.mjs` 的 tool 三项 |
-| 5 | 能读真实仓库状态 | `verify.mjs` 打印 branch/upstream/ahead/behind/dirty |
-| 6 | 宿主启动时组合进该行 | `dsh --profile desktop --dump-config \| grep dsh-syn-config` |
-| 7 | 新会话工具可见 | 重启客户端后问答一次「dsh 配置同步了吗」 |
-| 8 | 三种仓库状态结果正确 | 干净 / 落后 / 脏（本地真仓库或临时仓库） |
-| 9 | 体检与脚本对等 | `node scripts/parity.mjs` → 13/13，退出码一致 |
-| 10 | 报告不含明文密钥 | `test/doctor.test.mjs` 的 redaction 用例 |
-| 11 | 镜像与 rsync 等价 | `test/mirror.test.mjs`（有 rsync 时真跑对照） |
-| 12 | reasoningEffort 4 条断言 | `test/patch.test.mjs`（移植自 `selftest.sh:26-69`） |
-| 13 | 元字符密钥往返 | `test/secrets.test.mjs` |
-| 14 | 残留占位符不写盘 | `test/p2.test.mjs` |
-| 15 | 快照不动 reasoningEffort | `test/pack.test.mjs` |
-| 16 | 默认不删仓库条目 | `test/pack.test.mjs`（`allowDelete` 才删） |
-| 17 | 分叉不 rebase、不丢提交 | `test/push.test.mjs` |
-| 18 | 明文密钥在提交前中止 | `test/push.test.mjs` |
-| 19 | 斜杠命令五个子命令 | `test/p4.test.mjs`（status/push dry-run/未知子命令） |
-| 20 | 状态路由 GET/405 | `test/p4.test.mjs`（含 `Cache-Control: no-store`） |
-| 21 | 技能随包携带 | `test/p4.test.mjs`（provider list/get，rank 600） |
-
-## 许可
-
-MIT。Windows 投影与原子写逻辑改编自同作者的 `dsh-model-effort-chips`（MIT）。
+MIT. The Windows projection and atomic-write logic are adapted from `dsh-model-effort-chips` (MIT).
+MIT。Windows 投影与原子写逻辑改编自 `dsh-model-effort-chips`（MIT）。
