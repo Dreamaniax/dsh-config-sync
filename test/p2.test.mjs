@@ -25,6 +25,7 @@ function makeRemoteFixture(name) {
   git(root, ['clone', '--quiet', bare, seed])
   git(seed, ['config', 'user.email', 't@e.c'])
   git(seed, ['config', 'user.name', 'T'])
+  git(seed, ['config', 'core.autocrlf', 'false'])
   mkdirSync(join(seed, 'skills', 'alpha'), { recursive: true })
   writeFileSync(join(seed, 'skills', 'alpha', 'SKILL.md'), '# alpha\n')
   mkdirSync(join(seed, 'agents-skills', 'beta'), { recursive: true })
@@ -43,6 +44,7 @@ function cloneAs(root, name) {
   git(root, ['clone', '--quiet', '-b', 'main', join(root, 'origin.git'), dir])
   git(dir, ['config', 'user.email', 't@e.c'])
   git(dir, ['config', 'user.name', 'T'])
+  git(dir, ['config', 'core.autocrlf', 'false'])
   return dir
 }
 

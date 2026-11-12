@@ -25,6 +25,7 @@ function fixture(name) {
   const repo = join(root, 'repo')
   const home = join(root, 'home')
   const agents = join(root, 'agents')
+  const localPlugin = join(root, 'local-plugin')
 
   write(join(repo, 'skills', 'oldskill', 'SKILL.md'), '# old\n')
   write(join(repo, 'profiles', 'desktop', 'cordis.patch.yml'), 'agent-default-model:\n  model: deepseek-chat\ncwd: /repo\n')
@@ -43,11 +44,11 @@ function fixture(name) {
     name: 'p',
     dependencies: {
       a: '1.0.0',
-      local: 'link:/Users/me/code/local-plugin',
+      local: `link:${localPlugin}`,
     },
   }, null, 2))
 
-  return { root, repo, home, agents }
+  return { root, repo, home, agents, localPlugin }
 }
 
 test('normalizeLinks rewrites absolute link specs to relative ones', () => {
@@ -72,7 +73,7 @@ test('snapshot dry run reports changes without writing', () => {
 })
 
 test('snapshot writes skills, AGENTS.md, MANIFEST and normalised links', () => {
-  const { repo, home, agents } = fixture('write')
+  const { repo, home, agents, localPlugin } = fixture('write')
   const result = snapshot({ repoPath: repo, dshHome: home, agentsHome: agents, dryRun: false })
   assert.equal(result.dryRun, false)
   assert.equal(readFileSync(join(repo, 'skills', 'alpha', 'SKILL.md'), 'utf8'), '# alpha\n')
@@ -88,7 +89,7 @@ test('snapshot writes skills, AGENTS.md, MANIFEST and normalised links', () => {
   // The spec must be relative now, and it must still resolve to the original path.
   assert.ok(pkg.dependencies.local.startsWith('link:..'), `expected a relative link spec, got ${pkg.dependencies.local}`)
   const resolved = resolve(join(home, 'profiles', 'desktop'), pkg.dependencies.local.slice('link:'.length))
-  assert.equal(resolved, resolve('/Users/me/code/local-plugin'))
+  assert.equal(resolved, localPlugin)
 })
 
 test('snapshot keeps the repository reasoningEffort instead of the local one', () => {

@@ -48,7 +48,7 @@ $repo = Join-Path $env:TEMP "dsh-sync-win-test"
 Remove-Item -Recurse -Force $repo -ErrorAction SilentlyContinue
 git init $repo
 git -C $repo config user.name "win-test"
-git -C $repo config user.email "win-test@example.com"
+git -C $repo config user.email "win-test@localhost"
 "# test" | Out-File -Encoding utf8 (Join-Path $repo "AGENTS.md")
 git -C $repo add -A
 git -C $repo commit -m "init"
@@ -76,7 +76,7 @@ $odd = Join-Path $env:TEMP "dsh sync 测试 目录"
 New-Item -ItemType Directory -Force $odd | Out-Null
 git init $odd
 git -C $odd config user.name "win-test"
-git -C $odd config user.email "win-test@example.com"
+git -C $odd config user.email "win-test@localhost"
 "x" | Out-File -Encoding utf8 (Join-Path $odd "AGENTS.md")
 git -C $odd add -A; git -C $odd commit -m init
 ```

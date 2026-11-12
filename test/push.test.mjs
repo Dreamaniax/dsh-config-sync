@@ -33,6 +33,7 @@ function fixture(name) {
   git(root, ['clone', '--quiet', bare, seed])
   git(seed, ['config', 'user.email', 't@e.c'])
   git(seed, ['config', 'user.name', 'T'])
+  git(seed, ['config', 'core.autocrlf', 'false'])
   write(join(seed, 'skills', 'alpha', 'SKILL.md'), '# alpha v1\n')
   write(join(seed, 'profiles', 'desktop', 'cordis.patch.yml'), 'agent-default-model:\n  model: deepseek-chat\n')
   write(join(seed, 'profiles', 'desktop', 'package.json'), JSON.stringify({ name: 'p', dependencies: {} }, null, 2))
@@ -46,6 +47,7 @@ function fixture(name) {
   git(root, ['clone', '--quiet', '-b', 'main', bare, repo])
   git(repo, ['config', 'user.email', 't@e.c'])
   git(repo, ['config', 'user.name', 'T'])
+  git(repo, ['config', 'core.autocrlf', 'false'])
 
   write(join(home, 'skills', 'alpha', 'SKILL.md'), '# alpha v2\n')
   write(join(home, 'AGENTS.md'), '# agents v2\n')

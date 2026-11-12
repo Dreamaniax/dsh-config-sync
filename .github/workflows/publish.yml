@@ -34,7 +34,7 @@ jobs:
           node -e "const t=process.env.GITHUB_REF_NAME.replace(/^v/,'');const v=require('./package.json').version;if(t!==v){console.error('tag '+t+' does not match version '+v);process.exit(1)};console.log('tag matches version '+v)"
 
       - name: Unit tests
-        run: node --test "test/*.test.mjs"
+        run: node --test
 
       - name: Release hygiene gate
         run: node scripts/publish-check.mjs --deep

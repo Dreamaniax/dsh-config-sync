@@ -26,7 +26,7 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: Unit tests
-        run: node --test "test/*.test.mjs"
+        run: node --test
 
       - name: Release hygiene gate
         run: node scripts/publish-check.mjs
