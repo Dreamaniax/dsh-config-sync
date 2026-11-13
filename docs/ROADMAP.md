@@ -23,11 +23,11 @@ Anything that weakens one of those three is necessary. Everything else is option
 ### N1. Continuous integration on both systems — landed in 0.8.9
 
 CI now runs the unit suite, the release gate and a packaging smoke test on
-`ubuntu-latest`, `macos-latest` and `windows-latest` across Node 20 and 22
+`ubuntu-latest`, `macos-15` and `windows-latest` across Node 20 and 22
 (`.github/workflows/ci.yml`). `parity.mjs` and `verify.mjs` remain local gates
 because they need a sibling `dsh-config` checkout. Windows real-hardware
 acceptance is still pending (`docs/WINDOWS-TEST.md`).
-A GitHub Actions matrix (`macos-latest`, `windows-latest`, `ubuntu-latest`) running
+A GitHub Actions matrix (`macos-15`, `windows-latest`, `ubuntu-latest`) running
 `node --test`, `parity.mjs`, and a packaging smoke test (`npm pack` → install into a throwaway
 profile) is the single cheapest way to stop “works on my Mac” from returning.
 **Why necessary:** the Windows path (junction, atomic rename, `windowsHide`) has never run on real

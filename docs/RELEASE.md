@@ -134,3 +134,9 @@ gh run watch -R Dreamaniax/dsh-syn-config
 
 没有凭据时，tag 触发的 Publish 会在发布步失败，但前面的门禁仍会跑——这正是要的信号：
 **先把闸门跑绿，再谈发布。**
+
+## 10. macOS runner label（2026-11 实测）
+
+本账号上 `macos-14` 会以 `configuration 'macos-14-arm64-us-default' is not supported` 直接取消，
+而 `macos-15`、`macos-15-intel`、`macos-latest` 都能正常调度。CI 现用 `macos-15`。
+遇到 job 在启动前 `cancelled`、日志为空时，先看 job 的 annotation，再决定换 label 还是查额度。
