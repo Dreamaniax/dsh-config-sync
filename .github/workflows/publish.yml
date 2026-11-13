@@ -59,7 +59,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') && inputs.dry_run != true
         run: |
           TARBALL=$(npm pack --silent | tail -1)
-          gh release create "$GITHUB_REF_NAME" --title "dsh-syn-config ${GITHUB_REF_NAME#v}" --generate-notes "./$TARBALL"
+          cp "$TARBALL" dsh-syn-config.tgz
+          gh release create "$GITHUB_REF_NAME" --title "dsh-syn-config ${GITHUB_REF_NAME#v}" --generate-notes "./$TARBALL" dsh-syn-config.tgz
         env:
           GH_TOKEN: ${{ github.token }}
 
