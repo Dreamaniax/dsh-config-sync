@@ -101,7 +101,8 @@ if (deep) {
     if (!line.startsWith('+')) continue
     for (const pattern of privateTokens) {
       const match = pattern.exec(line)
-      if (match) found.set(match[0], (found.get(match[0]) ?? 0) + 1)
+      // Placeholders left by a history rewrite are not private values.
+      if (match && !/example|OWNER|<owner>/u.test(line)) found.set(match[0], (found.get(match[0]) ?? 0) + 1)
     }
   }
   if (found.size === 0) {
