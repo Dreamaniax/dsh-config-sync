@@ -38,3 +38,14 @@ jobs:
 
       - name: Packaging smoke test
         run: node scripts/pack-smoke.mjs
+
+  # Temporary probe: which macOS labels can this account schedule?
+  probe:
+    if: github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-13, macos-14, macos-15, macos-15-intel, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: uname -m && sw_vers && echo "ok: ${{ matrix.os }}"
