@@ -48,4 +48,4 @@ jobs:
         os: [macos-13, macos-14, macos-15, macos-15-intel, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - run: uname -m && sw_vers && echo "ok: ${{ matrix.os }}"
+      - run: 'uname -m && sw_vers && echo "ok: ${{ matrix.os }}"'
